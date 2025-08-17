@@ -1,0 +1,59 @@
+# =========================
+# Maven
+# =========================
+target/
+!.mvn/wrapper/maven-wrapper.jar
+.mvn/
+dependency-reduced-pom.xml
+
+# =========================
+# IntelliJ / Eclipse / VSCode
+# =========================
+.idea/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+.vscode/
+# =========================
+.DS_Store
+Thumbs.db
+# =========================
+# Logs
+# =========================
+*.log
+*.out
+hs_err_pid*
+replay_pid*
+
+# =========================
+# Java
+# =========================
+*.jar
+*.war
+*.ear
+*.pid
+.env.*.local
+
+# =========================
+surefire-reports/
+test-output/
+junit-platform.properties
+
+# =========================
+/*.swp
+# =========================
+# Others
+# =========================
+# Test reports
+.env
+.env.local
+
+# =========================
+# =========================
+# Docker / Env
+
+
+
