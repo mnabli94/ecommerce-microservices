@@ -1,9 +1,6 @@
 package com.demo.product.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -25,9 +22,14 @@ public class Product {
     @NotBlank
     private String name;
 
-    @NotNull @DecimalMin(value = "0.01", message = "Cannot accept an amount less than 0.01")
+    @NotNull
+    @DecimalMin(value = "0.01", message = "Cannot accept an amount less than 0.01")
     private BigDecimal price;
 
     private boolean inStock = true;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private Category category;
 
 }

@@ -1,6 +1,7 @@
-package com.demo.product.web;
+package com.demo.product.controller;
 
 import com.demo.product.service.ProductService;
+import com.demo.product.dto.ProductDTO;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.data.domain.Page;
