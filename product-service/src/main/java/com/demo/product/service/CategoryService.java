@@ -1,5 +1,6 @@
 package com.demo.product.service;
 
+import com.demo.product.mapper.CategoryMapper;
 import com.demo.product.model.Category;
 import com.demo.product.repository.CategoryRepository;
 import com.demo.product.dto.CategoryDTO;
@@ -20,23 +21,23 @@ public class CategoryService {
 
     @Transactional
     public CategoryDTO create(CategoryDTO in) {
-        return toDTO(repo.save(new Category(in.name())));
+        return CategoryMapper.toDto(repo.save(new Category(in.name())));
     }
 
     public CategoryDTO find(Long id) {
         var category = repo.findById(id).orElseThrow(() -> new EntityNotFoundException("Category with id %d not found".formatted(id)));
-        return toDTO(category);
+        return CategoryMapper.toDto(category);
     }
 
     public Page<CategoryDTO> list(Pageable pageable) {
-        return repo.findAll(pageable).map(this::toDTO);
+        return repo.findAll(pageable).map(CategoryMapper::toDto);
     }
 
     @Transactional
     public CategoryDTO update(Long id, CategoryDTO in) {
         var category = repo.findById(id).orElseThrow(() -> new EntityNotFoundException("Category %d introuvable".formatted(id)));
         category.setName(in.name());
-        return toDTO(repo.save(category));
+        return CategoryMapper.toDto(repo.save(category));
     }
 
     @Transactional
@@ -45,9 +46,5 @@ public class CategoryService {
             throw new EntityNotFoundException("Category %d introuvable".formatted(id));
         }
         repo.deleteById(id);
-    }
-
-    private CategoryDTO toDTO(Category category) {
-        return new CategoryDTO(category.getId(), category.getName());
     }
 }

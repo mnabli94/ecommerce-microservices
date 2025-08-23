@@ -1,5 +1,6 @@
 package com.demo.product.service;
 
+import com.demo.product.mapper.ProductMapper;
 import com.demo.product.model.Category;
 import com.demo.product.model.Product;
 import com.demo.product.repository.CategoryRepository;
@@ -25,13 +26,13 @@ public class ProductService {
         Category category = categoryRepository.findById(dto.categoryId())
                 .orElseThrow(() -> new EntityNotFoundException("Category not found with id: %d".formatted(dto.categoryId())));
         Product product = new Product(null, dto.name(), dto.price(), dto.inStock(), category);
-        return toDTO(productRepository.save(product));
+        return ProductMapper.toDto(productRepository.save(product));
     }
 
     public ProductDTO find(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Product not found with id: %d".formatted(id)));
-        return toDTO(product);
+        return ProductMapper.toDto(product);
     }
 
     public ProductDTO update(Long id, ProductDTO dto) {
@@ -45,7 +46,7 @@ public class ProductService {
         product.setPrice(dto.price());
         product.setInStock(dto.inStock());
         product.setCategory(category);
-        return toDTO(productRepository.save(product));
+        return ProductMapper.toDto(productRepository.save(product));
     }
 
     public void delete(Long id) {
@@ -55,13 +56,7 @@ public class ProductService {
         productRepository.deleteById(id);
     }
 
-
-    private ProductDTO toDTO(Product product) {
-        Long categoryId = (product.getCategory() != null ? product.getCategory().getId() : null);
-        return new ProductDTO(product.getId(), product.getName(), product.getPrice(), product.isInStock(), categoryId);
-    }
-
     public Page<ProductDTO> findAll(Pageable pageable) {
-        return productRepository.findAll(pageable).map(this::toDTO);
+        return productRepository.findAll(pageable).map(ProductMapper::toDto);
     }
 }
