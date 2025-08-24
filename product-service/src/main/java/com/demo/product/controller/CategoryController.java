@@ -24,18 +24,18 @@ public class CategoryController {
     }
 
     @GetMapping("/{id}")
-    public CategoryDTO get(@PathVariable Long id) {
-        return service.find(id);
+    public ResponseEntity<CategoryDTO> get(@PathVariable Long id) {
+        return ResponseEntity.ok(service.find(id));
     }
 
     @GetMapping
-    public Page<CategoryDTO> list(Pageable p) {
-        return service.list(p);
+    public ResponseEntity<Page<CategoryDTO>> list(Pageable p) {
+        return ResponseEntity.ok(service.list(p));
     }
 
     @PutMapping("/{id}")
-    public CategoryDTO update(@PathVariable Long id, @Valid @RequestBody CategoryDTO in) {
-        return service.update(id, in);
+    public ResponseEntity<CategoryDTO> update(@PathVariable Long id, @Valid @RequestBody CategoryDTO in) {
+        return ResponseEntity.ok(service.update(id, in));
     }
 
     @DeleteMapping("/{id}")
