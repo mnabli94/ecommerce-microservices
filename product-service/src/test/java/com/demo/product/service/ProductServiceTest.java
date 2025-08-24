@@ -45,7 +45,7 @@ class ProductServiceTest {
     }
 
     @Test
-    void createProduct_shouldReturnSuccess() {
+    void create_shouldReturnSuccess() {
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(productRepository.save(any(Product.class))).thenAnswer(invocationOnMock -> {
             Product in = invocationOnMock.getArgument(0);
@@ -72,13 +72,13 @@ class ProductServiceTest {
     }
 
     @Test
-    void createProduct_withNullCategory_shouldThrow() {
+    void create_shouldThrow_whenCategoryIsNull() {
         dto = new ProductDTO(null, "Laptop", new BigDecimal("19.90"), true, null);
         assertThrows(EntityNotFoundException.class, () -> productService.create(dto));
     }
 
     @Test
-    void createProduct_withUnknownCategoryId_shouldThrow() {
+    void createProduct_shouldThrow_whenCategoryNotFound() {
         ProductDTO input = new ProductDTO(null, "Laptop", new BigDecimal("19.90"), true, 99L);
         when(categoryRepository.findById(99L)).thenReturn(Optional.empty());
 
@@ -90,7 +90,7 @@ class ProductServiceTest {
     }
 
     @Test
-    void findProductById_shouldReturnDTO() {
+    void find_shouldReturnDTO() {
         Product product = new Product(1L, "Laptop", new BigDecimal("19.90"), true, category);
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
@@ -108,7 +108,7 @@ class ProductServiceTest {
     }
 
     @Test
-    void updateProduct_shouldReturnDTO() {
+    void update_shouldReturnDTO() {
 
         Category initialCategory =  new Category(1L, "Cat2");
         Product initialProduct = new Product(1L, "HP", new BigDecimal("19.90"), true, initialCategory);
