@@ -16,5 +16,17 @@ services:
       timeout: 3s
       retries: 10
 
+  product-service:
+    build:
+      context: .
+      dockerfile: product-service/Dockerfile
+    depends_on: [ postgres ]
+    environment:
+      SPRING_PROFILES_ACTIVE: postgres
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/productsdb
+      SPRING_DATASOURCE_USERNAME: demo
+      SPRING_DATASOURCE_PASSWORD: demo123
+    ports: [ "8080:8080" ]
+
 volumes:
   pgdata_products:

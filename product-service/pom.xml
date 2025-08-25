@@ -10,7 +10,6 @@
 
 	<artifactId>product-service</artifactId>
 	<name>product-service</name>
-	<version>0.0.1-SNAPSHOT</version>
 	<description>Microservice Product (Spring Boot)</description>
 
 	<dependencies>
