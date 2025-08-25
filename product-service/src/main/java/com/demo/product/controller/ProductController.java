@@ -32,7 +32,7 @@ public class ProductController {
         return ResponseEntity.ok(service.find(id));
     }
 
-    @GetMapping("/")
+    @GetMapping()
     public ResponseEntity<Page<ProductDTO>> get(){
         Pageable pageable = PageRequest.of(0,5, Sort.by("name").ascending());
         return ResponseEntity.ok(service.findAll(pageable));
