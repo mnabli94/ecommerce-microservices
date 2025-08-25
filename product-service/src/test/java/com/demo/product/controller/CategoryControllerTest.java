@@ -57,6 +57,6 @@ class CategoryControllerTest {
     void get_shouldReturn404_whenMissing() throws Exception {
         when(service.find(99L)).thenThrow(new EntityNotFoundException("not found"));
         mvc.perform(get("/products/99"))
-                .andExpect(status().is(500));
+                .andExpect(status().isNotFound());
     }
 }
