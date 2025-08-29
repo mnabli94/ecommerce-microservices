@@ -61,6 +61,6 @@
 
     <modules>
         <module>product-service</module>
-        <!-- TODO <module>order-service</module>, etc. -->
+        <module>order-service</module>
     </modules>
 </project>

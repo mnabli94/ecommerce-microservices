@@ -1,13 +1,11 @@
 services:
-  postgres:
+  product-db:
     image: postgres:15-alpine
-    container_name: pg-products
     environment:
       POSTGRES_DB: productsdb
       POSTGRES_USER: demo
       POSTGRES_PASSWORD: demo123
-    ports:
-      - "5432:5432"
+    ports: ["5433:5432"]
     volumes:
       - pgdata_products:/var/lib/postgresql/data
     healthcheck:
@@ -16,17 +14,47 @@ services:
       timeout: 3s
       retries: 10
 
+  order-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ordersdb
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: demo123
+    ports: ["5434:5432"]
+    volumes:
+      - pgdata_orders:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U demo -d ordersdb"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   product-service:
     build:
       context: .
       dockerfile: product-service/Dockerfile
-    depends_on: [ postgres ]
+    depends_on: [ product-db ]
     environment:
       SPRING_PROFILES_ACTIVE: postgres
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/productsdb
+      SPRING_DATASOURCE_URL: jdbc:postgresql://product-db:5432/productsdb
       SPRING_DATASOURCE_USERNAME: demo
       SPRING_DATASOURCE_PASSWORD: demo123
-    ports: [ "8080:8080" ]
+      SERVER_PORT: 8081
+    ports: ["8081:8081"]
+
+  order-service:
+    build:
+      context: .
+      dockerfile: order-service/Dockerfile
+    depends_on: [ order-db ]
+    environment:
+      SPRING_PROFILES_ACTIVE: postgres
+      SPRING_DATASOURCE_URL: jdbc:postgresql://order-db:5432/ordersdb
+      SPRING_DATASOURCE_USERNAME: demo
+      SPRING_DATASOURCE_PASSWORD: demo123
+      SERVER_PORT: 8082
+    ports: ["8082:8082"]
 
 volumes:
   pgdata_products:
+  pgdata_orders:
