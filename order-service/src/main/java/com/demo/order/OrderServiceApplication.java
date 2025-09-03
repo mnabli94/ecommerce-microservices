@@ -2,9 +2,13 @@ package com.demo.order;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 
+import java.util.stream.IntStream;
+
 @EnableFeignClients
+@EnableCaching
 @SpringBootApplication
 public class OrderServiceApplication {
     public static void main(String[] args) {
