@@ -1,6 +1,5 @@
 package com.demo.order.dto.out;
 
-import com.demo.product.dto.ProductDTO;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.*;
 

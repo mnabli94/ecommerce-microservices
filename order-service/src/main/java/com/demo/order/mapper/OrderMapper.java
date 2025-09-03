@@ -12,22 +12,17 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface OrderMapper {
 
-    OrderInDTO toDto(Order order);
-
 //    @Mapping(target = "createdAt", ignore = true)
 //    @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "totalAmount", ignore = true)
     Order toEntity(OrderInDTO dto);
-
-    OrderItemInDTO toDto(OrderItem orderItem);
-
     @Mapping(target = "order", ignore = true)
     OrderItem toEntity(OrderItemInDTO dto);
 
+    OrderItemInDTO toDto(OrderItem orderItem);
+    OrderInDTO toDto(Order order);
+
     @Mapping(target = "product", ignore = true)
     OrderItemOutDTO toOutDto(OrderItem orderItem);
-
     OrderOutDTO toOutDto(Order order);
-
-
 }

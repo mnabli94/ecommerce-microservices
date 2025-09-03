@@ -1,6 +1,6 @@
 package com.demo.order.service;
 
-import com.demo.product.dto.ProductDTO;
+import com.demo.order.dto.out.ProductDTO;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;

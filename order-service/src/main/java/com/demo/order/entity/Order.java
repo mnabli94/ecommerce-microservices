@@ -57,11 +57,6 @@ public class Order {
         updatedAt = LocalDateTime.now();
     }
 
-    public void addOrderItem(OrderItem orderItem) {
-        orderItem.setOrder(this);
-        this.orderItems.add(orderItem);
-    }
-
     public void calculateTotalAmount() {
         this.totalAmount = this.orderItems.stream().map(item -> item.getUnitPrice()
                         .multiply(BigDecimal.valueOf(item.getQuantity())))
