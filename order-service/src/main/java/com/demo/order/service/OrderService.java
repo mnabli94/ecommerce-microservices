@@ -9,13 +9,17 @@ import com.demo.order.entity.OrderItem;
 import com.demo.order.entity.OrderStatus;
 import com.demo.order.mapper.OrderMapper;
 import com.demo.order.repository.OrderRepository;
+import com.demo.order.repository.OrderSpecifications;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -41,12 +45,18 @@ public class OrderService {
     @Transactional
     public OrderOutDTO createOrder(OrderInDTO dto) {
         Order order = orderMapper.toEntity(dto);
-        order.setCreatedAt(LocalDateTime.now());
+        order.setCreatedAt(OffsetDateTime.now());
         order.setStatus(OrderStatus.PENDING);
 
         order.getOrderItems().forEach(item -> {
             setUpProduct(item);
             item.setOrder(order);
+            if (item.getQuantity() == null || item.getQuantity() <= 0) {
+                item.setQuantity(1);
+            }
+            if (item.getUnitPrice() == null || item.getUnitPrice().compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException("Invalid unit price for product id: %s".formatted(item.getProductId()));
+            }
         });
         order.calculateTotalAmount();
         Order saved = orderRepository.save(order);
@@ -59,8 +69,12 @@ public class OrderService {
         return getOrderOutDTOWithProductDetails(order);
     }
 
-    public Page<OrderOutDTO> findAll(Pageable pageable) {
-        return orderRepository.findAll(pageable).map(this::getOrderOutDTOWithProductDetails);
+    public Page<OrderOutDTO> findAll(OrderStatus status, BigDecimal minAmount, OffsetDateTime from, OffsetDateTime to, Pageable pageable) {
+        Specification<Order> spec = Specification.where(OrderSpecifications.statusEquals(status))
+                .and(OrderSpecifications.minAmount(minAmount))
+                .and(OrderSpecifications.createdFrom(from))
+                .and(OrderSpecifications.createdTo(to));
+        return orderRepository.findAll(spec, pageable).map(this::getOrderOutDTOWithProductDetails);
     }
 
     private void setUpProduct(OrderItem item) {

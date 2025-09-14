@@ -1,13 +1,15 @@
 package com.demo.product.service;
 
 import com.demo.product.mapper.CategoryMapper;
-import com.demo.product.model.Category;
+import com.demo.product.entity.Category;
 import com.demo.product.repository.CategoryRepository;
 import com.demo.product.dto.CategoryDTO;
+import com.demo.product.repository.CategorySpecifications;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -29,8 +31,11 @@ public class CategoryService {
         return CategoryMapper.toDto(category);
     }
 
-    public Page<CategoryDTO> list(Pageable pageable) {
-        return repo.findAll(pageable).map(CategoryMapper::toDto);
+    public Page<CategoryDTO> search(Long id, String name, Pageable pageable) {
+        Specification<Category> spec = Specification
+                .where(CategorySpecifications.nameContains(name))
+                .and(CategorySpecifications.idEquals(id));
+        return repo.findAll(spec, pageable).map(CategoryMapper::toDto);
     }
 
     @Transactional

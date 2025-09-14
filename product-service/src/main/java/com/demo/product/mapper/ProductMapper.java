@@ -1,10 +1,9 @@
 package com.demo.product.mapper;
 
 import com.demo.product.dto.ProductDTO;
-import com.demo.product.model.Category;
-import com.demo.product.model.Product;
+import com.demo.product.entity.Category;
+import com.demo.product.entity.Product;
 
-import java.math.BigDecimal;
 import java.util.Objects;
 
 public final class ProductMapper {
