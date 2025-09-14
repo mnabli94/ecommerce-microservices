@@ -1,7 +1,7 @@
 package com.demo.product.service;
 
 import com.demo.product.dto.CategoryDTO;
-import com.demo.product.model.Category;
+import com.demo.product.entity.Category;
 import com.demo.product.repository.CategoryRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +13,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
+
 import java.util.List;
 import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
@@ -77,9 +79,9 @@ class CategoryServiceTest {
                 new Category(2L, "B")
         ));
 
-        when(categoryRepository.findAll(any(Pageable.class))).thenReturn(page);
+        when(categoryRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
 
-        var output = categoryService.list(PageRequest.of(0, 5 ));
+        var output = categoryService.search(null, null, PageRequest.of(0, 5 ));
 
         assertEquals(2, output.getTotalElements());
         assertEquals(page.get().map(Category::getName).toList(), output.getContent().stream().map(CategoryDTO::name).toList());

@@ -1,15 +1,19 @@
 package com.demo.product.service;
 
 import com.demo.product.mapper.ProductMapper;
-import com.demo.product.model.Category;
-import com.demo.product.model.Product;
+import com.demo.product.entity.Category;
+import com.demo.product.entity.Product;
 import com.demo.product.repository.CategoryRepository;
 import com.demo.product.repository.ProductRepository;
 import com.demo.product.dto.ProductDTO;
+import com.demo.product.repository.ProductSpecifications;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
 
 @Service
 public class ProductService {
@@ -56,7 +60,16 @@ public class ProductService {
         productRepository.deleteById(id);
     }
 
-    public Page<ProductDTO> findAll(Pageable pageable) {
-        return productRepository.findAll(pageable).map(ProductMapper::toDto);
+    public Page<ProductDTO> findAll(String name,
+                                    Long categoryId,
+                                    BigDecimal minPrice,
+                                    BigDecimal maxPrice,
+                                    Pageable pageable) {
+        Specification<Product> spec = Specification
+                .where(ProductSpecifications.categoryIdEquals(categoryId))
+                .and(ProductSpecifications.nameContains(name))
+                .and(ProductSpecifications.minPrice(minPrice))
+                .and(ProductSpecifications.maxPrice(maxPrice));
+        return productRepository.findAll(spec, pageable).map(ProductMapper::toDto);
     }
 }

@@ -2,7 +2,7 @@ package com.demo.product.controller;
 
 import com.demo.product.dto.CategoryDTO;
 import com.demo.product.mapper.CategoryMapper;
-import com.demo.product.model.Category;
+import com.demo.product.entity.Category;
 import com.demo.product.service.CategoryService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityNotFoundException;

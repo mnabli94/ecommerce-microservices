@@ -1,8 +1,9 @@
 package com.demo.product.service;
 
 import com.demo.product.dto.ProductDTO;
-import com.demo.product.model.Category;
-import com.demo.product.model.Product;
+import com.demo.product.mapper.ProductMapper;
+import com.demo.product.entity.Category;
+import com.demo.product.entity.Product;
 import com.demo.product.repository.CategoryRepository;
 import com.demo.product.repository.ProductRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -14,8 +15,14 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -110,7 +117,7 @@ class ProductServiceTest {
     @Test
     void update_shouldReturnDTO() {
 
-        Category initialCategory =  new Category(1L, "Cat2");
+        Category initialCategory = new Category(1L, "Cat2");
         Product initialProduct = new Product(1L, "HP", new BigDecimal("19.90"), true, initialCategory);
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(initialProduct));
@@ -142,5 +149,24 @@ class ProductServiceTest {
 
         verify(productRepository).existsById(1L);
         verifyNoMoreInteractions(productRepository);
+    }
+
+
+    @Test
+    void findAll_shouldReturnPageOfProducts() {
+        Category category = new Category(1L, "Cat2");
+        var products = List.of(
+                new Product(1L, "Phone", new BigDecimal("299.99"), true, category)
+//                , new Product(2L, "Laptop", new BigDecimal("999.99"), true, category)
+        );
+        Pageable pageable = PageRequest.of(0,5);
+        var page = new PageImpl<>(products, pageable, products.size());
+
+        when(productRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
+
+        Page<ProductDTO> output = productService.findAll("Phone", null, null, null, pageable);
+        assertEquals( 1, output.getTotalElements());
+        assertEquals("Phone", output.getContent().get(0).name());
+
     }
 }
