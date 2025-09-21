@@ -1,5 +1,6 @@
 package com.demo.order.service;
 
+import com.demo.order.client.ProductClient;
 import com.demo.order.dto.in.OrderInDTO;
 import com.demo.order.dto.out.OrderItemOutDTO;
 import com.demo.order.dto.out.OrderOutDTO;
@@ -10,6 +11,7 @@ import com.demo.order.entity.OrderStatus;
 import com.demo.order.mapper.OrderMapper;
 import com.demo.order.repository.OrderRepository;
 import com.demo.order.repository.OrderSpecifications;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
@@ -18,7 +20,6 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -33,13 +34,15 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderMapper orderMapper;
     private final ProductClient productClient;
+    private final MeterRegistry meterRegistry;
 
     public OrderService(OrderRepository orderRepository,
                         OrderMapper orderMapper,
-                        ProductClient productClient) {
+                        ProductClient productClient, MeterRegistry meterRegistry) {
         this.orderRepository = orderRepository;
         this.orderMapper = orderMapper;
         this.productClient = productClient;
+        this.meterRegistry = meterRegistry;
     }
 
     @Transactional
@@ -60,6 +63,7 @@ public class OrderService {
         });
         order.calculateTotalAmount();
         Order saved = orderRepository.save(order);
+        meterRegistry.counter("order.created", "service", "order-service").increment();
         return getOrderOutDTOWithProductDetails(saved);
     }
 
@@ -70,11 +74,12 @@ public class OrderService {
     }
 
     public Page<OrderOutDTO> findAll(OrderStatus status, BigDecimal minAmount, OffsetDateTime from, OffsetDateTime to, Pageable pageable) {
-        Specification<Order> spec = Specification.where(OrderSpecifications.statusEquals(status))
+        Specification<Order> spec = Specification
+                .where(OrderSpecifications.statusEquals(status))
                 .and(OrderSpecifications.minAmount(minAmount))
-                .and(OrderSpecifications.createdFrom(from))
-                .and(OrderSpecifications.createdTo(to));
-        return orderRepository.findAll(spec, pageable).map(this::getOrderOutDTOWithProductDetails);
+                .and(OrderSpecifications.createdBetween(from, to));
+        return orderRepository.findAll(spec, pageable)
+                .map(this::getOrderOutDTOWithProductDetails);
     }
 
     private void setUpProduct(OrderItem item) {
@@ -85,15 +90,18 @@ public class OrderService {
     }
 
     private void validateProduct(String productId, ProductDTO product) {
-        if (product == null) {
-            throw new EntityNotFoundException("Product not found: " + productId);
+        if (product == null || "Fallback Product".equals(product.name())) {
+            meterRegistry.counter("order.validation_failed", "service", "order-service").increment();
+            throw new EntityNotFoundException("Product not found or unavailable: " + productId);
         }
 
-        if (Boolean.FALSE.equals(product.inStock())) {
+        if (!product.inStock()) {
+            meterRegistry.counter("order.validation_failed", "service", "order-service").increment();
             throw new RuntimeException("Product not available: " + productId);
         }
 
         if (product.price() == null) {
+            meterRegistry.counter("order.validation_failed", "service", "order-service").increment();
             throw new RuntimeException("Product price missing: " + productId);
         }
     }
@@ -107,6 +115,7 @@ public class OrderService {
         }
         order.setStatus(OrderStatus.CONFIRMED);
         var saved = orderRepository.save(order);
+        meterRegistry.counter("order.confirmed", "service", "order-service").increment();
         return getOrderOutDTOWithProductDetails(saved);
     }
 
@@ -118,6 +127,7 @@ public class OrderService {
         }
         order.setStatus(OrderStatus.CANCELLED);
         var saved = orderRepository.save(order);
+        meterRegistry.counter("order.cancelled", "service", "order-service").increment();
         return getOrderOutDTOWithProductDetails(saved);
     }
 
