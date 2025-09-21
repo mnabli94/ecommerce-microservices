@@ -11,6 +11,7 @@ import com.demo.order.entity.OrderStatus;
 import com.demo.order.mapper.OrderMapper;
 import com.demo.order.repository.OrderRepository;
 import com.demo.order.repository.OrderSpecifications;
+import io.github.resilience4j.retry.annotation.Retry;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
@@ -33,15 +34,15 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderMapper orderMapper;
-    private final ProductClient productClient;
+    private final ProductCaller productCaller;
     private final MeterRegistry meterRegistry;
 
     public OrderService(OrderRepository orderRepository,
                         OrderMapper orderMapper,
-                        ProductClient productClient, MeterRegistry meterRegistry) {
+                        ProductCaller productCaller, MeterRegistry meterRegistry) {
         this.orderRepository = orderRepository;
         this.orderMapper = orderMapper;
-        this.productClient = productClient;
+        this.productCaller = productCaller;
         this.meterRegistry = meterRegistry;
     }
 
@@ -84,7 +85,7 @@ public class OrderService {
 
     private void setUpProduct(OrderItem item) {
         String productId = item.getProductId();
-        ProductDTO product = productClient.getProduct(Long.parseLong(productId));
+        ProductDTO product = productCaller.getProduct(Long.parseLong(productId));
         validateProduct(productId, product);
         item.setUnitPrice(product.price());
     }
@@ -136,7 +137,7 @@ public class OrderService {
         Executor executor = Executors.newFixedThreadPool(16);
         List<CompletableFuture<ProductDTO>> futures = saved.getOrderItems().stream()
                 .map(item -> CompletableFuture.supplyAsync(() ->
-                        productClient.getProduct(Long.parseLong(item.getProductId())), executor))
+                        productCaller.getProduct(Long.parseLong(item.getProductId())), executor))
                 .toList();
         List<ProductDTO> products = futures.stream().map(CompletableFuture::join).toList();
 

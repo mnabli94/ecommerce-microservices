@@ -8,7 +8,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 import java.util.stream.IntStream;
 
 @EnableFeignClients
-@EnableCaching
+//@EnableCaching
 @SpringBootApplication
 public class OrderServiceApplication {
     public static void main(String[] args) {

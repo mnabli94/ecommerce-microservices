@@ -7,6 +7,8 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +25,7 @@ import java.math.BigDecimal;
 public class ProductController {
 
     private final ProductService service;
+    private static final Logger logger = LoggerFactory.getLogger(ProductController.class);
 
     public ProductController(ProductService service) {
         this.service = service;
@@ -35,6 +38,8 @@ public class ProductController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ProductDTO> get(@NotNull @PathVariable Long id) {
+        logger.info("call /api/products/{}", id);
+        // return ResponseEntity.status(503).build(); //TODO for test purposes
         return ResponseEntity.ok(service.find(id));
     }
 

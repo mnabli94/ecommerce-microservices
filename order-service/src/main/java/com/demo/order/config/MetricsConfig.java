@@ -20,9 +20,5 @@ public class MetricsConfig {
                 .tag("service", "order-service")
                 .description("Number of orders cancelled")
                 .register(registry);
-        Counter.builder("product.fallback.invoked")
-                .tag("service", "order-service")
-                .description("Number of fallback of product service")
-                .register(registry);
     }
 }
