@@ -6,7 +6,6 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 public record OrderItemInDTO(
-        UUID id,
         @NotBlank(message = "Product ID cannot be empty")
         @Size(max = 50, message = "Product ID must be at most 50 characters")
         String productId,

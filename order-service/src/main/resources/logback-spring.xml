@@ -1,5 +1,5 @@
 <configuration>
-    <springProperty scope="context" name="appName" source="spring.application.name" defaultValue="product-service"/>
+    <springProperty scope="context" name="appName" source="spring.application.name" defaultValue="order-service"/>
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSSZZ} %-5level [%thread] %logger{36} - %msg%n</pattern>
