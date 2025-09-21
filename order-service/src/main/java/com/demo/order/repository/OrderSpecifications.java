@@ -21,10 +21,17 @@ public class OrderSpecifications {
         return  (root, q, cb) -> max == null ? cb.conjunction() : cb.lessThanOrEqualTo(root.get("totalAmount"), max);
     }
 
-    public static Specification<Order> createdFrom(OffsetDateTime from) {
-        return (root, q, cb) -> from == null ? cb.conjunction() : cb.greaterThanOrEqualTo(root.get("createdAt"), from);
-    }
-    public static Specification<Order> createdTo(OffsetDateTime to) {
-        return (root, q, cb) -> to == null ? cb.conjunction() : cb.lessThanOrEqualTo(root.get("createdAt"), to);
+    public static Specification<Order> createdBetween(OffsetDateTime from, OffsetDateTime to) {
+        return (root, query, cb) -> {
+            if (from == null && to == null) {
+                return cb.conjunction();
+            } else if (from == null) {
+                return cb.lessThanOrEqualTo(root.get("createdAt"), to);
+            } else if (to == null) {
+                return cb.greaterThanOrEqualTo(root.get("createdAt"), from);
+            } else {
+                return cb.between(root.get("createdAt"), from, to);
+            }
+        };
     }
 }
