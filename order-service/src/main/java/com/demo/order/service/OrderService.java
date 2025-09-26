@@ -1,6 +1,5 @@
 package com.demo.order.service;
 
-import com.demo.order.client.ProductClient;
 import com.demo.order.dto.in.OrderInDTO;
 import com.demo.order.dto.out.OrderItemOutDTO;
 import com.demo.order.dto.out.OrderOutDTO;
@@ -8,10 +7,13 @@ import com.demo.order.dto.out.ProductDTO;
 import com.demo.order.entity.Order;
 import com.demo.order.entity.OrderItem;
 import com.demo.order.entity.OrderStatus;
+import com.demo.order.messaging.EventPublisher;
+import com.demo.order.messaging.Topics;
+import com.demo.order.messaging.events.OrderCreatedEvent;
 import com.demo.order.mapper.OrderMapper;
+import com.demo.order.messaging.OrderEventsProducer;
 import com.demo.order.repository.OrderRepository;
 import com.demo.order.repository.OrderSpecifications;
-import io.github.resilience4j.retry.annotation.Retry;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
@@ -36,14 +38,19 @@ public class OrderService {
     private final OrderMapper orderMapper;
     private final ProductCaller productCaller;
     private final MeterRegistry meterRegistry;
+    private final OrderEventsProducer orderEventsProducer;
+    private final EventPublisher eventPublisher;
 
     public OrderService(OrderRepository orderRepository,
                         OrderMapper orderMapper,
-                        ProductCaller productCaller, MeterRegistry meterRegistry) {
+                        ProductCaller productCaller, MeterRegistry meterRegistry,
+                        OrderEventsProducer orderEventsProducer, EventPublisher eventPublisher) {
         this.orderRepository = orderRepository;
         this.orderMapper = orderMapper;
         this.productCaller = productCaller;
         this.meterRegistry = meterRegistry;
+        this.orderEventsProducer = orderEventsProducer;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -65,6 +72,19 @@ public class OrderService {
         order.calculateTotalAmount();
         Order saved = orderRepository.save(order);
         meterRegistry.counter("order.created", "service", "order-service").increment();
+
+        var evt = new OrderCreatedEvent(
+                saved.getId(),
+                saved.getStatus().name(),
+                saved.getTotalAmount(),
+                saved.getCreatedAt(),
+                saved.getOrderItems().stream()
+                        .map(i -> new OrderCreatedEvent.Item(Long.valueOf(i.getProductId()), i.getQuantity(), i.getUnitPrice()))
+                        .toList()
+        );
+       // orderEventsProducer.publish(evt);
+
+        eventPublisher.publish(Topics.ORDER_CREATED, evt);
         return getOrderOutDTOWithProductDetails(saved);
     }
 
@@ -150,7 +170,7 @@ public class OrderService {
             return new OrderItemOutDTO(itemDto.id(), product, itemDto.quantity(), itemDto.unitPrice());
         }).toList();
 
-        return new OrderOutDTO(result.id(), result.status(), result.shippingAddress(), finalOrderItems, result.totalAmount());
+        return new OrderOutDTO(result.id(), result.status(), result.shippingAddress(), finalOrderItems, result.totalAmount(), result.createdAt());
     }
 
 }
