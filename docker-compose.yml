@@ -1,15 +1,16 @@
 services:
   product-db:
     image: postgres:15-alpine
+    container_name: PRODUCT_DB
     environment:
       POSTGRES_DB: productsdb
       POSTGRES_USER: demo
       POSTGRES_PASSWORD: demo123
-    ports: ["5433:5432"]
+    ports: [ "5433:5432" ]
     volumes:
       - pgdata_products:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U demo -d productsdb"]
+      test: [ "CMD-SHELL", "pg_isready -U demo -d productsdb" ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -18,15 +19,16 @@ services:
 
   order-db:
     image: postgres:15-alpine
+    container_name: ORDER_DB
     environment:
       POSTGRES_DB: ordersdb
       POSTGRES_USER: demo
       POSTGRES_PASSWORD: demo123
-    ports: ["5434:5432"]
+    ports: [ "5434:5432" ]
     volumes:
       - pgdata_orders:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U demo -d ordersdb"]
+      test: [ "CMD-SHELL", "pg_isready -U demo -d ordersdb" ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -34,6 +36,7 @@ services:
       - app-network
 
   product-service:
+    container_name: product-service
     build:
       context: .
       dockerfile: product-service/Dockerfile
@@ -46,11 +49,12 @@ services:
       SPRING_DATASOURCE_USERNAME: demo
       SPRING_DATASOURCE_PASSWORD: demo123
       SERVER_PORT: 8081
-    ports: ["8081:8081"]
+    ports: [ "8081:8081" ]
     networks:
       - app-network
 
   order-service:
+    container_name: order-service
     build:
       context: .
       dockerfile: order-service/Dockerfile
@@ -66,15 +70,80 @@ services:
       SPRING_DATASOURCE_PASSWORD: demo123
       SERVER_PORT: 8082
       PRODUCT_SERVICE_URL: http://product-service:8081
-    ports: ["8082:8082"]
+    ports: [ "8082:8082" ]
     networks:
       - app-network
 
   prometheus:
     image: prom/prometheus:latest
+    container_name: prometheus
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
-    ports: ["9090:9090"]
+    ports: [ "9090:9090" ]
+    networks:
+      - app-network
+
+  zookeeper:
+    image: bitnami/zookeeper:3.9
+    container_name: zookeeper
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    ports: [ "2181:2181" ]
+    mem_limit: 512m
+    networks:
+      - app-network
+
+  kafka:
+    image: bitnami/kafka:3.7
+    ports: [ "9092:9092" ]
+    container_name: kafka
+    mem_limit: 1g
+    environment:
+      - KAFKA_ENABLE_KRAFT=no
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT
+        # 👇 indispensables pour un broker unique
+      - KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      - KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR=1
+      - KAFKA_CFG_MIN_INSYNC_REPLICAS=1
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+    depends_on:
+      - zookeeper
+    networks:
+      - app-network
+
+  akhq:
+    image: tchiotludo/akhq:latest
+    container_name: akhq
+    ports:
+      - "8086:8080"
+    environment:
+      AKHQ_CONFIGURATION: |
+        akhq:
+          connections:
+            docker-kafka-server:
+              properties:
+                  bootstrap.servers: "localhost:9092"
+              zookeeper:
+                url: "localhost:2181"
+      AKHQ_SECURITY_AUTHENTICATION: |
+        users:
+          admin:
+            name: admin
+            password: admin
+            role: Admin
+      AKHQ_SECURITY_AUTHORIZATION: |
+        permissions:
+          - resource: Topic
+            permission: Read
+          - resource: Topic
+            permission: Write
+    depends_on:
+      - kafka
     networks:
       - app-network
 
