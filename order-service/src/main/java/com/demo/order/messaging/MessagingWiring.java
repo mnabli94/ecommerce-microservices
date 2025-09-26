@@ -1,6 +1,7 @@
 package com.demo.order.messaging;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -9,10 +10,13 @@ import java.util.Map;
 @Configuration
 public class MessagingWiring {
 
+    @Value("${KAFKA_BOOTSTRAP_SERVERS}")
+    private String bootstrapServers;
+
     @Bean
     public KafkaModule kafkaModule(ObjectMapper mapper) {
         var common = Map.<String, Object>of(
-                "bootstrap.servers", "localhost:9092",
+                "bootstrap.servers", bootstrapServers,
                 "acks", "all"
         );
         var producer = Map.<String, Object>of(
