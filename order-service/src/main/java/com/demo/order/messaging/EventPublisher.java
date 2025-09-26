@@ -16,7 +16,7 @@ public class EventPublisher {
     public <T extends Event> void publish(String topic, T event) {
         kafka.send(topic, event.key(), event)
                 .whenComplete((res, exp) -> {
-                    logger.info("{} event with key={} and created at={} was sent",topic, event.key(), event.createdAt());
+                    logger.info("{} event with key={} and created at={} was sent", topic, event.key(), event.createdAt());
                 });
     }
 
