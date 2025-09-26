@@ -1,4 +1,4 @@
-package com.demo.order.messaging;
+package com.demo.order.messaging.test;
 
 import com.demo.order.messaging.events.OrderCreatedEvent;
 import io.micrometer.core.instrument.MeterRegistry;

@@ -1,5 +1,8 @@
-package com.demo.order.messaging;
+package com.demo.order.messaging.test;
 
+import com.demo.order.messaging.KafkaModule;
+import com.demo.order.messaging.Topics;
+import com.demo.order.messaging.events.OrderConfirmedEvent;
 import com.demo.order.messaging.events.OrderCreatedEvent;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.annotation.PostConstruct;
@@ -20,18 +23,14 @@ public class OrderEventsConsumer {
 
     @PostConstruct
     void init() {
-        module.registerConsumer(
-                Topics.ORDER_CREATED,
-                "order-service-test",
-                OrderCreatedEvent.class,
-                event -> logger.info("Received OrderCreated: key={}, total={}, createdAt={}", event.key(), event.totalAmount(), event.createdAt())
-        );
+        module.registerConsumer(Topics.ORDER_CREATED, "order-service-test", OrderCreatedEvent.class, this::onOrderCreated);
+        module.registerConsumer(Topics.ORDER_CONFIRMED, "order-service-test", OrderConfirmedEvent.class,
+                event -> logger.info("Received OrderConfirmed: key={}, total={}, createdAt={}", event.key(), event.totalAmount(), event.createdAt()));
     }
-/*
-    @KafkaListener(topics = Topics.ORDER_CREATED, groupId = "order-service-test")
+
     public void onOrderCreated(OrderCreatedEvent event) {
         meterRegistry.counter("order.event.consumed", "service", "order-service", "event", "order-created").increment();
-        logger.info("Received OrderCreated: id={}, total={}, createdAt={}", event.orderId(), event.totalAmount(), event.createdAt());
+        logger.info("Received OrderCreated: key={}, total={}, createdAt={}", event.key(), event.totalAmount(), event.createdAt());
     }
-*/
+
 }

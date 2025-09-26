@@ -9,9 +9,10 @@ import com.demo.order.entity.OrderItem;
 import com.demo.order.entity.OrderStatus;
 import com.demo.order.messaging.EventPublisher;
 import com.demo.order.messaging.Topics;
+import com.demo.order.messaging.events.OrderConfirmedEvent;
 import com.demo.order.messaging.events.OrderCreatedEvent;
 import com.demo.order.mapper.OrderMapper;
-import com.demo.order.messaging.OrderEventsProducer;
+import com.demo.order.messaging.test.OrderEventsProducer;
 import com.demo.order.repository.OrderRepository;
 import com.demo.order.repository.OrderSpecifications;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -137,6 +138,18 @@ public class OrderService {
         order.setStatus(OrderStatus.CONFIRMED);
         var saved = orderRepository.save(order);
         meterRegistry.counter("order.confirmed", "service", "order-service").increment();
+
+        var evt = new OrderConfirmedEvent(
+                saved.getId(),
+                saved.getTotalAmount(),
+                saved.getCreatedAt(),
+                saved.getOrderItems().stream()
+                        .map(i -> new OrderCreatedEvent.Item(Long.valueOf(i.getProductId()), i.getQuantity(), i.getUnitPrice()))
+                        .toList()
+        );
+
+        eventPublisher.publish(Topics.ORDER_CONFIRMED, evt);
+
         return getOrderOutDTOWithProductDetails(saved);
     }
 
