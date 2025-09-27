@@ -1,5 +1,9 @@
 package com.demo.order.service;
 
+import com.demo.kafka.EventPublisher;
+import com.demo.kafka.Topics;
+import com.demo.kafka.events.OrderConfirmedEvent;
+import com.demo.kafka.events.OrderCreatedEvent;
 import com.demo.order.dto.in.OrderInDTO;
 import com.demo.order.dto.out.OrderItemOutDTO;
 import com.demo.order.dto.out.OrderOutDTO;
@@ -7,12 +11,7 @@ import com.demo.order.dto.out.ProductDTO;
 import com.demo.order.entity.Order;
 import com.demo.order.entity.OrderItem;
 import com.demo.order.entity.OrderStatus;
-import com.demo.order.messaging.EventPublisher;
-import com.demo.order.messaging.Topics;
-import com.demo.order.messaging.events.OrderConfirmedEvent;
-import com.demo.order.messaging.events.OrderCreatedEvent;
 import com.demo.order.mapper.OrderMapper;
-import com.demo.order.messaging.test.OrderEventsProducer;
 import com.demo.order.repository.OrderRepository;
 import com.demo.order.repository.OrderSpecifications;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -39,18 +38,17 @@ public class OrderService {
     private final OrderMapper orderMapper;
     private final ProductCaller productCaller;
     private final MeterRegistry meterRegistry;
-    private final OrderEventsProducer orderEventsProducer;
     private final EventPublisher eventPublisher;
 
     public OrderService(OrderRepository orderRepository,
                         OrderMapper orderMapper,
-                        ProductCaller productCaller, MeterRegistry meterRegistry,
-                        OrderEventsProducer orderEventsProducer, EventPublisher eventPublisher) {
+                        ProductCaller productCaller,
+                        MeterRegistry meterRegistry,
+                        EventPublisher eventPublisher) {
         this.orderRepository = orderRepository;
         this.orderMapper = orderMapper;
         this.productCaller = productCaller;
         this.meterRegistry = meterRegistry;
-        this.orderEventsProducer = orderEventsProducer;
         this.eventPublisher = eventPublisher;
     }
 

@@ -1,5 +1,9 @@
 package com.demo.product.service;
 
+import com.demo.kafka.EventConsumer;
+import com.demo.kafka.Topics;
+import com.demo.kafka.events.OrderConfirmedEvent;
+import com.demo.kafka.events.OrderCreatedEvent;
 import com.demo.product.mapper.ProductMapper;
 import com.demo.product.entity.Category;
 import com.demo.product.entity.Product;
@@ -7,7 +11,11 @@ import com.demo.product.repository.CategoryRepository;
 import com.demo.product.repository.ProductRepository;
 import com.demo.product.dto.ProductDTO;
 import com.demo.product.repository.ProductSpecifications;
+import io.micrometer.core.instrument.MeterRegistry;
+import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -18,12 +26,29 @@ import java.math.BigDecimal;
 @Service
 public class ProductService {
 
+    private static final Logger logger = LoggerFactory.getLogger(ProductService.class);
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
+    private final EventConsumer eventConsumer;
+    private final MeterRegistry meterRegistry;
 
-    public ProductService(ProductRepository productRepository, CategoryRepository categoryRepository) {
+    public ProductService(ProductRepository productRepository, CategoryRepository categoryRepository, EventConsumer eventConsumer, MeterRegistry meterRegistry) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
+        this.eventConsumer = eventConsumer;
+        this.meterRegistry = meterRegistry;
+    }
+
+    @PostConstruct
+    void init() {
+        eventConsumer.register(Topics.ORDER_CREATED, "product-service", OrderCreatedEvent.class, this::onOrderCreated);
+        eventConsumer.register(Topics.ORDER_CONFIRMED, "product-service", OrderConfirmedEvent.class,
+                event -> logger.info("Received OrderConfirmed: key={}, total={}, createdAt={}", event.key(), event.totalAmount(), event.createdAt()));
+    }
+
+    public void onOrderCreated(OrderCreatedEvent event) {
+        meterRegistry.counter("order.event.consumed", "service", "order-service", "event", "order-created").increment();
+        logger.info("Received OrderCreated: key={}, total={}, createdAt={}", event.key(), event.totalAmount(), event.createdAt());
     }
 
     public ProductDTO create(ProductDTO dto) {
