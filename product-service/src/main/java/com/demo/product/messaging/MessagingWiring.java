@@ -1,5 +1,8 @@
-package com.demo.order.messaging;
+package com.demo.product.messaging;
 
+import com.demo.kafka.EventConsumer;
+import com.demo.kafka.EventPublisher;
+import com.demo.kafka.KafkaModule;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -33,5 +36,10 @@ public class MessagingWiring {
     @Bean
     public EventPublisher eventPublisher(KafkaModule module) {
         return module.publisher();
+    }
+
+    @Bean
+    public EventConsumer eventConsumer(KafkaModule module) {
+        return new EventConsumer(module);
     }
 }

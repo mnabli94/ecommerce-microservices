@@ -1,4 +1,4 @@
-package com.demo.order.messaging.events;
+package com.demo.kafka.events;
 
 import java.time.OffsetDateTime;
 

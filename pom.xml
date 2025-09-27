@@ -67,6 +67,7 @@
     </build>
 
     <modules>
+        <module>kafka-utils</module>
         <module>product-service</module>
         <module>order-service</module>
     </modules>

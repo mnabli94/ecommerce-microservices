@@ -69,7 +69,13 @@
 			<type>pom</type>
 			<scope>import</scope>
 		</dependency>
-	</dependencies>
+        <dependency>
+            <groupId>com.demo</groupId>
+            <artifactId>kafka-utils</artifactId>
+            <version>1.0.0</version>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
 
 	<build>
 		<plugins>
