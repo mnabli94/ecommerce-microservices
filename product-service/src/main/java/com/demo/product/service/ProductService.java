@@ -29,25 +29,41 @@ public class ProductService {
     private static final Logger logger = LoggerFactory.getLogger(ProductService.class);
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
-    private final EventConsumer eventConsumer;
+    private final EventConsumer<OrderConfirmedEvent> orderConfirmedEventConsumer;
+    private final EventConsumer<OrderCreatedEvent> orderCreatedEventConsumer;
     private final MeterRegistry meterRegistry;
 
-    public ProductService(ProductRepository productRepository, CategoryRepository categoryRepository, EventConsumer eventConsumer, MeterRegistry meterRegistry) {
+    public ProductService(ProductRepository productRepository, CategoryRepository categoryRepository, EventConsumer<OrderConfirmedEvent> orderConfirmedEventConsumer, EventConsumer<OrderCreatedEvent> orderCreatedEventConsumer, MeterRegistry meterRegistry) {
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
-        this.eventConsumer = eventConsumer;
+        this.orderConfirmedEventConsumer = orderConfirmedEventConsumer;
+        this.orderCreatedEventConsumer = orderCreatedEventConsumer;
         this.meterRegistry = meterRegistry;
     }
 
     @PostConstruct
     void init() {
-        eventConsumer.register(Topics.ORDER_CREATED, "product-service", OrderCreatedEvent.class, this::onOrderCreated);
-        eventConsumer.register(Topics.ORDER_CONFIRMED, "product-service", OrderConfirmedEvent.class,
-                event -> logger.info("Received OrderConfirmed: key={}, total={}, createdAt={}", event.key(), event.totalAmount(), event.createdAt()));
+        orderCreatedEventConsumer.registerWithDlq(Topics.ORDER_CREATED, "product-service", OrderCreatedEvent.class, this::onOrderCreated);
+        orderConfirmedEventConsumer.registerWithDlq(Topics.ORDER_CONFIRMED, "product-service", OrderConfirmedEvent.class, this::onOrderConfirmed);
+        orderCreatedEventConsumer.registerDlqConsumer("order.created.dlq", "product-service-dlq", OrderCreatedEvent.class,
+                event -> logger.error("DLQ event received: {}", event));
+        orderConfirmedEventConsumer.registerDlqConsumer("order.confirmed.dlq", "product-service-dlq", OrderConfirmedEvent.class,
+                event -> logger.error("DLQ event received: {}", event));
     }
 
-    public void onOrderCreated(OrderCreatedEvent event) {
+    private void onOrderCreated(OrderCreatedEvent event) {
+        if (event.items().stream().mapToInt(OrderCreatedEvent.Item::quantity).sum() > 10) {
+            throw new RuntimeException("Too much quantity");
+        }
         meterRegistry.counter("order.event.consumed", "service", "order-service", "event", "order-created").increment();
+        logger.info("Received OrderCreated: key={}, total={}, createdAt={}", event.key(), event.totalAmount(), event.createdAt());
+    }
+
+    private void onOrderConfirmed(OrderConfirmedEvent event) {
+        if (event.totalAmount().compareTo(BigDecimal.valueOf(1000)) > 0) {
+            throw new RuntimeException("Too much total amunt");
+        }
+        meterRegistry.counter("order.event.consumed", "service", "order-service", "event", "order-confirmed").increment();
         logger.info("Received OrderCreated: key={}, total={}, createdAt={}", event.key(), event.totalAmount(), event.createdAt());
     }
 

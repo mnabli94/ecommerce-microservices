@@ -40,6 +40,6 @@ public class MessagingWiring {
 
     @Bean
     public EventConsumer eventConsumer(KafkaModule module) {
-        return new EventConsumer(module);
+        return new EventConsumer(module, module.kafkaTemplate());
     }
 }
