@@ -65,6 +65,10 @@ public class KafkaModule {
         return new EventPublisher(kafkaTemplate);
     }
 
+    public KafkaTemplate kafkaTemplate() {
+        return this.kafkaTemplate;
+    }
+
     public <T> ConcurrentMessageListenerContainer<String, T> registerConsumer(String topic, String groupId, Class<T> valueType, Consumer<T> handler) {
         var props = new HashMap<>(consumerProps);
         props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
