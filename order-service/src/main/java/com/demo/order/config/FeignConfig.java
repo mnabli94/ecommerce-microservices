@@ -9,6 +9,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 @Configuration
 public class FeignConfig {
@@ -42,10 +44,13 @@ public class FeignConfig {
     @Bean
     public RequestInterceptor jwtInterceptor() {
         return requestTemplate -> {
-            JwtAuthenticationToken authentication = (JwtAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
-            if (authentication != null) {
-                String token = authentication.getToken().getTokenValue();
-                requestTemplate.header("Authorization", "Bearer " + token);
+            var attrs = RequestContextHolder.getRequestAttributes();
+            if(attrs instanceof ServletRequestAttributes servletRequestAttributes) {
+                String token = servletRequestAttributes.getRequest().getHeader("Authorization");
+                if (token != null && token.startsWith("Bearer ")) {
+                    token = token.substring(7).trim();
+                    requestTemplate.header("Authorization", "Bearer " + token);
+                }
             }
         };
     }
