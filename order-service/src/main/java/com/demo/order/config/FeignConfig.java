@@ -16,6 +16,20 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 public class FeignConfig {
 
     @Bean
+    public RequestInterceptor jwtInterceptor() {
+        return requestTemplate -> {
+            var attrs = RequestContextHolder.getRequestAttributes();
+            if(attrs instanceof ServletRequestAttributes servletRequestAttributes) {
+                String token = servletRequestAttributes.getRequest().getHeader("Authorization");
+                if (token != null && token.startsWith("Bearer ")) {
+                    token = token.substring(7).trim();
+                    requestTemplate.header("Authorization", "Bearer " + token);
+                }
+            }
+        };
+    }
+
+    @Bean
     public Retryer feignRetryer() {
         // period (ms), maxPeriod (ms), maxAttempts (incluant le 1er appel)
         return new Retryer.Default(100, 500, 3); // => 1 appel + 2 retries
@@ -41,17 +55,5 @@ public class FeignConfig {
             return defaultDecoder.decode(methodKey, response);
         };
     }
-    @Bean
-    public RequestInterceptor jwtInterceptor() {
-        return requestTemplate -> {
-            var attrs = RequestContextHolder.getRequestAttributes();
-            if(attrs instanceof ServletRequestAttributes servletRequestAttributes) {
-                String token = servletRequestAttributes.getRequest().getHeader("Authorization");
-                if (token != null && token.startsWith("Bearer ")) {
-                    token = token.substring(7).trim();
-                    requestTemplate.header("Authorization", "Bearer " + token);
-                }
-            }
-        };
-    }
+
 }
