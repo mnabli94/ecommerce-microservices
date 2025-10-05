@@ -5,25 +5,32 @@ import feign.RequestInterceptor;
 import feign.RetryableException;
 import feign.Retryer;
 import feign.codec.ErrorDecoder;
+import jakarta.annotation.PostConstruct;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.task.TaskExecutor;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.security.task.DelegatingSecurityContextAsyncTaskExecutor;
 
 @Configuration
 public class FeignConfig {
 
+    @PostConstruct
+    void inherit() {
+        SecurityContextHolder.setStrategyName(SecurityContextHolder.MODE_INHERITABLETHREADLOCAL);
+    }
+
     @Bean
-    public RequestInterceptor jwtInterceptor() {
-        return requestTemplate -> {
-            var attrs = RequestContextHolder.getRequestAttributes();
-            if(attrs instanceof ServletRequestAttributes servletRequestAttributes) {
-                String token = servletRequestAttributes.getRequest().getHeader("Authorization");
-                if (token != null && token.startsWith("Bearer ")) {
-                    token = token.substring(7).trim();
-                    requestTemplate.header("Authorization", "Bearer " + token);
+    public RequestInterceptor bearerFromSecurityContext() {
+        return template -> {
+            var auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth instanceof JwtAuthenticationToken jat) {
+                String token = jat.getToken().getTokenValue();
+                if (token != null) {
+                    token = token.startsWith("Bearer ") ? token.substring(7).trim() : token;
+                    template.header("Authorization", "Bearer " + token);
                 }
             }
         };
