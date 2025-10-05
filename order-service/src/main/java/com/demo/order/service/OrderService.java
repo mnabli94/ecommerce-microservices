@@ -17,6 +17,7 @@ import com.demo.order.repository.OrderSpecifications;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -29,8 +30,8 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
+@Slf4j
 @Service
 public class OrderService {
 
@@ -39,17 +40,20 @@ public class OrderService {
     private final ProductCaller productCaller;
     private final MeterRegistry meterRegistry;
     private final EventPublisher eventPublisher;
+    private final Executor executor;
 
     public OrderService(OrderRepository orderRepository,
                         OrderMapper orderMapper,
                         ProductCaller productCaller,
                         MeterRegistry meterRegistry,
-                        EventPublisher eventPublisher) {
+                        EventPublisher eventPublisher,
+                        Executor executor) {
         this.orderRepository = orderRepository;
         this.orderMapper = orderMapper;
         this.productCaller = productCaller;
         this.meterRegistry = meterRegistry;
         this.eventPublisher = eventPublisher;
+        this.executor = executor;
     }
 
     @Transactional
@@ -81,7 +85,6 @@ public class OrderService {
                         .map(i -> new OrderCreatedEvent.Item(Long.valueOf(i.getProductId()), i.getQuantity(), i.getUnitPrice()))
                         .toList()
         );
-       // orderEventsProducer.publish(evt);
 
         eventPublisher.publish(Topics.ORDER_CREATED, evt);
         return getOrderOutDTOWithProductDetails(saved);
@@ -112,16 +115,19 @@ public class OrderService {
     private void validateProduct(String productId, ProductDTO product) {
         if (product == null || "Fallback Product".equals(product.name())) {
             meterRegistry.counter("order.validation_failed", "service", "order-service").increment();
+            log.error("Product not found or unavailable: {}", productId);
             throw new EntityNotFoundException("Product not found or unavailable: " + productId);
         }
 
         if (!product.inStock()) {
             meterRegistry.counter("order.validation_failed", "service", "order-service").increment();
+            log.error("Product not available: {}", productId);
             throw new RuntimeException("Product not available: " + productId);
         }
 
         if (product.price() == null) {
             meterRegistry.counter("order.validation_failed", "service", "order-service").increment();
+            log.error("Product price missing: {}", product);
             throw new RuntimeException("Product price missing: " + productId);
         }
     }
@@ -131,6 +137,7 @@ public class OrderService {
     public OrderOutDTO confirm(UUID id) {
         var order = orderRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Order not found"));
         if (order.getStatus() != OrderStatus.PENDING) {
+            log.error("Illegal status {} for the order with id: {}", order.getStatus(), id);
             throw new IllegalStateException("Only PENDING orders can be confirmed");
         }
         order.setStatus(OrderStatus.CONFIRMED);
@@ -165,7 +172,6 @@ public class OrderService {
 
     private OrderOutDTO getOrderOutDTOWithProductDetails(Order saved) {
         OrderOutDTO result = orderMapper.toOutDto(saved);
-        Executor executor = Executors.newFixedThreadPool(16);
         List<CompletableFuture<ProductDTO>> futures = saved.getOrderItems().stream()
                 .map(item -> CompletableFuture.supplyAsync(() ->
                         productCaller.getProduct(Long.parseLong(item.getProductId())), executor))
