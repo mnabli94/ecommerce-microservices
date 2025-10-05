@@ -24,8 +24,11 @@ public class ProductClientFallbackFactory implements FallbackFactory<ProductClie
     public ProductClient create(Throwable cause) {
         return new ProductClient() {
             @Override
-            public ProductDTO getProduct(Long id) {
+            public ProductDTO getProduct(Long id, String bearer) {
                 String causeType;
+                if (bearer == null) {
+                    logger.warn("No JWT in security context");
+                }
                 if (cause instanceof CallNotPermittedException) {
                     logger.warn("Circuit breaker is OPEN for product-service : {}", cause.getMessage());
                     causeType = "circuit_breaker_open";
@@ -36,7 +39,7 @@ public class ProductClientFallbackFactory implements FallbackFactory<ProductClie
                     logger.warn("Unexpected error: {}", cause.getMessage());
                     causeType = "unknown_error";
                 }
-                logger.error("Fallback triggered for product ID {}: {}", id, cause.getMessage());
+                logger.error("Fallback triggered for product ID {}: {} with cause type {}", id, cause.getMessage(), causeType);
                 meterRegistry.counter("product.fallback.invoked",
                         "service", "order-service",
                         "cause", causeType,
