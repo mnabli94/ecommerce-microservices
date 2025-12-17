@@ -1,3 +1,6 @@
+# Local data (DB H2 files)
+local-data/*
+!local-data/.gitkeep
 # =========================
 # Maven
 # =========================
