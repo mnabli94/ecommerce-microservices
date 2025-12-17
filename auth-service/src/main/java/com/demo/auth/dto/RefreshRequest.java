@@ -1,4 +1,7 @@
 package com.demo.auth.dto;
 
-public record RefreshRequest(String refreshToken) {}
+import jakarta.validation.constraints.NotBlank;
+
+public record RefreshRequest(@NotBlank(message = "refresh token cannot be null or empty") String refreshToken) {
+}
 

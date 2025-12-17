@@ -1,17 +1,19 @@
 package com.demo.auth.controller;
 
-import com.demo.auth.dto.LoginRequest;
-import com.demo.auth.dto.RefreshRequest;
-import com.demo.auth.dto.RevokeRequest;
-import com.demo.auth.dto.TokenResponse;
+import com.demo.auth.dto.*;
+import com.demo.auth.entity.User;
 import com.demo.auth.service.RefreshService;
 import com.demo.auth.service.TokenService;
 import com.demo.auth.service.UserService;
 import com.nimbusds.jose.JOSEException;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import java.net.URI;
 
 @RestController
 @RequestMapping("/auth")
@@ -48,11 +50,5 @@ public class AuthController {
     public ResponseEntity<Void> revoke(@RequestBody @Valid RevokeRequest req) {
         refreshService.revokeCascade(req.refreshToken());
         return ResponseEntity.noContent().build();
-    }
-
-    @PostMapping("/addUser")
-    public ResponseEntity<Void> addUser(@RequestBody @Valid LoginRequest request) {
-        userService.add(request.username(), request.password(), request.role());
-        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 }
