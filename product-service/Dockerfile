@@ -5,11 +5,11 @@ COPY pom.xml ./pom.xml
 RUN mvn -q install -N
 COPY kafka-utils/pom.xml kafka-utils/pom.xml
 COPY kafka-utils/src kafka-utils/src
-RUN mvn -q -DskipTests -f kafka-utils/pom.xml clean install
+RUN mvn -q -f kafka-utils/pom.xml clean install
 
 COPY product-service/pom.xml product-service/pom.xml
 COPY product-service/src product-service/src
-RUN mvn -q -DskipTests -f product-service -am package
+RUN mvn -q -f product-service -am package
 
 # ---- Run ----
 FROM eclipse-temurin:17-jre-jammy
