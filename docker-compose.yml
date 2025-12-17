@@ -35,6 +35,43 @@ services:
     networks:
       - app-network
 
+  user-db:
+    image: postgres:15-alpine
+    container_name: USER_DB
+    environment:
+      POSTGRES_DB: usersdb
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: demo123
+    ports: [ "5435:5432" ]
+    volumes:
+      - pgdata_users:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U demo -d usersdb" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - app-network
+
+  auth-service:
+    container_name: auth-service
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile
+    depends_on:
+      user-db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: postgres
+      SPRING_DATASOURCE_URL: jdbc:postgresql://user-db:5432/usersdb
+      SPRING_DATASOURCE_USERNAME: demo
+      SPRING_DATASOURCE_PASSWORD: demo123
+      SERVER_PORT: 8080
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9093
+    ports: [ "8080:8080" ]
+    networks:
+      - app-network
+
   product-service:
     container_name: product-service
     build:
@@ -43,12 +80,15 @@ services:
     depends_on:
       product-db:
         condition: service_healthy
+      kafka:
+        condition: service_started
     environment:
       SPRING_PROFILES_ACTIVE: postgres
       SPRING_DATASOURCE_URL: jdbc:postgresql://product-db:5432/productsdb
       SPRING_DATASOURCE_USERNAME: demo
       SPRING_DATASOURCE_PASSWORD: demo123
       SERVER_PORT: 8081
+      AUTH_SERVICE_URL: http://auth-service:8080
       KAFKA_BOOTSTRAP_SERVERS: kafka:9093
     ports: [ "8081:8081" ]
     networks:
@@ -73,6 +113,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: demo123
       SERVER_PORT: 8082
       PRODUCT_SERVICE_URL: http://product-service:8081
+      AUTH_SERVICE_URL: http://auth-service:8080
       KAFKA_BOOTSTRAP_SERVERS: kafka:9093
     ports: [ "8082:8082" ]
     networks:
@@ -94,6 +135,8 @@ services:
       - ALLOW_ANONYMOUS_LOGIN=yes
     ports: [ "2181:2181" ]
     mem_limit: 512m
+    volumes:
+      - zookeeper_data:/bitnami/zookeeper
     networks:
       - app-network
 
@@ -119,11 +162,13 @@ services:
       - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
     depends_on:
       - zookeeper
+    volumes:
+      - kafka_data:/bitnami/kafka
     networks:
       - app-network
 
   akhq:
-    image: tchiotludo/akhq:latest
+    image: tchiotludo/akhq:0.25.1
     container_name: akhq
     ports:
       - "8086:8080"
@@ -160,3 +205,6 @@ networks:
 volumes:
   pgdata_products:
   pgdata_orders:
+  pgdata_users:
+  kafka_data:
+  zookeeper_data:
