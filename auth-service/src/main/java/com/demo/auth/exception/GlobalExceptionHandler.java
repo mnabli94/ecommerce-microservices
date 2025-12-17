@@ -4,6 +4,7 @@ import jakarta.persistence.EntityNotFoundException;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -16,17 +17,17 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<ApiError> notFound(Exception ex) {
-       return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ApiError("NOT_FOUND", ex.getMessage()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ApiError> badRequest(Exception e){
+    public ResponseEntity<ApiError> badRequest(Exception e) {
         return ResponseEntity.badRequest().body(new ApiError("VALIDATION", e.getMessage()));
     }
 
     @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<?> business(Exception e){
+    public ResponseEntity<?> business(Exception e) {
         return ResponseEntity.unprocessableEntity().body(new ApiError("BUSINESS_RULE", e.getMessage()));
     }
 
@@ -42,8 +43,13 @@ public class GlobalExceptionHandler {
                 .body(new ApiError("NOT_VALID", "Validation failed for one or more fields", fieldErrors));
     }
 
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<?> unauthorized(Exception e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ApiError("UNAUTHORIZED", "Invalid credentials"));
+    }
+
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<?> other(Exception e){
+    public ResponseEntity<?> other(Exception e) {
         return ResponseEntity.internalServerError().body(new ApiError("INTERNAL_ERROR", e.getMessage()));
     }
 
