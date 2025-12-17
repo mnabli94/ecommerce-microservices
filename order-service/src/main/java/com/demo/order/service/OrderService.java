@@ -5,6 +5,7 @@ import com.demo.kafka.Topics;
 import com.demo.kafka.events.OrderConfirmedEvent;
 import com.demo.kafka.events.OrderCreatedEvent;
 import com.demo.order.dto.in.OrderInDTO;
+import com.demo.order.dto.in.OrderItemInDTO;
 import com.demo.order.dto.out.OrderItemOutDTO;
 import com.demo.order.dto.out.OrderOutDTO;
 import com.demo.order.dto.out.ProductDTO;
@@ -25,11 +26,14 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -40,25 +44,31 @@ public class OrderService {
     private final ProductCaller productCaller;
     private final MeterRegistry meterRegistry;
     private final EventPublisher eventPublisher;
-    private final Executor executor;
 
     public OrderService(OrderRepository orderRepository,
                         OrderMapper orderMapper,
                         ProductCaller productCaller,
                         MeterRegistry meterRegistry,
-                        EventPublisher eventPublisher,
-                        Executor executor) {
+                        EventPublisher eventPublisher) {
         this.orderRepository = orderRepository;
         this.orderMapper = orderMapper;
         this.productCaller = productCaller;
         this.meterRegistry = meterRegistry;
         this.eventPublisher = eventPublisher;
-        this.executor = executor;
     }
 
     @Transactional
     public OrderOutDTO createOrder(OrderInDTO dto) {
+        List<OrderItem> mergedOrderItems = dto.orderItems().stream().collect(Collectors.toMap(
+                OrderItemInDTO::productId,
+                Function.identity(),
+                (a, b) -> new OrderItemInDTO(a.productId(), a.quantity() + b.quantity(), a.unitPrice()),
+                LinkedHashMap::new
+        )).values().stream()
+                .map(orderMapper::toEntity)
+                .toList();
         Order order = orderMapper.toEntity(dto);
+        order.setOrderItems(mergedOrderItems);
         order.setCreatedAt(OffsetDateTime.now());
         order.setStatus(OrderStatus.PENDING);
 
@@ -172,11 +182,9 @@ public class OrderService {
 
     private OrderOutDTO getOrderOutDTOWithProductDetails(Order saved) {
         OrderOutDTO result = orderMapper.toOutDto(saved);
-        List<CompletableFuture<ProductDTO>> futures = saved.getOrderItems().stream()
-                .map(item -> CompletableFuture.supplyAsync(() ->
-                        productCaller.getProduct(Long.parseLong(item.getProductId())), executor))
-                .toList();
-        List<ProductDTO> products = futures.stream().map(CompletableFuture::join).toList();
+        List<ProductDTO> products = saved.getOrderItems()
+                .stream()
+                .map(item ->  productCaller.getProduct(Long.parseLong(item.getProductId()))).toList();
 
         var finalOrderItems = saved.getOrderItems().stream().map(item -> {
             var pid = Long.valueOf(item.getProductId());

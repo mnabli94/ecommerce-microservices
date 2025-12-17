@@ -7,8 +7,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 
-@FeignClient(name = "product-service", url = "${product-service.url}",
-        fallbackFactory = ProductClientFallbackFactory.class, configuration = FeignConfig.class)
+@FeignClient(name = "product-service",
+        url = "${product-service.url}",
+        fallbackFactory = ProductClientFallbackFactory.class,
+        configuration = FeignConfig.class)
 public interface ProductClient {
 
     //@Cacheable(value = "products", key = "#id")

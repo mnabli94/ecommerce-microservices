@@ -22,8 +22,6 @@ import java.util.stream.Collectors;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-//    @Value("${jwt.secret}")
-//    private String jwtSecret;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -31,7 +29,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable()) // Désactiver CSRF pour APIs REST
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Pas de sessions
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/token", "/swagger-ui/**", "/v3/api-docs/**", "/actuator/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/swagger-ui/**", "/v3/api-docs/**", "/actuator/**").permitAll()
                         .requestMatchers("/api/orders/**").hasRole("USER")
                         .anyRequest().authenticated()
                 )

@@ -2,6 +2,7 @@ package com.demo.order.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -9,6 +10,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "order_item")
+@NoArgsConstructor
 @Data
 public class OrderItem {
     @Id @GeneratedValue(strategy = GenerationType.UUID)
@@ -28,4 +30,10 @@ public class OrderItem {
     @Column(nullable = false)
     private BigDecimal unitPrice;
 
+    public OrderItem(Order order, String productId, int quantity, BigDecimal unitPrice) {
+        this.order = order;
+        this.productId = productId;
+        this.quantity = quantity;
+        this.unitPrice = unitPrice;
+    }
 }
