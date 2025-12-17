@@ -8,12 +8,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -34,7 +34,7 @@ class ProductControllerTest {
         var dto = new ProductDTO(1L, "Laptop", new BigDecimal("19.90"), true, 10L);
         when(service.create(any())).thenReturn(dto);
         mvc.perform(
-                post("/products")
+                post("/api/products").with(jwt())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isCreated())
@@ -44,7 +44,7 @@ class ProductControllerTest {
     @Test
     void create_shouldThrowError_whenNameIsMissing() throws Exception {
         mvc.perform(
-                        post("/products")
+                        post("/api/products").with(jwt())
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
                                         {"price":19.90,"inStock":true,"categoryId":10}
@@ -52,20 +52,13 @@ class ProductControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
-    //TODO #0006 Need to add ExceptionHandler to perform exact tests
-//    @Test
-//    void get_shouldReturn404_whenMissing() throws Exception {
-//        when(service.find(99L)).thenThrow(new EntityNotFoundException("not found"));
-//        mvc.perform(get("/products/99"))
-//                .andExpect(status().isBadRequest());
-//    }
+    @Test
+    void get_shouldReturn404_whenMissing() throws Exception {
+        when(service.find(99L)).thenThrow(new EntityNotFoundException("not found"));
+        mvc.perform(get("/products/99").with(jwt()))
+                .andExpect(status().isNotFound());
+    }
 
-//
-//    @Test
-//    void update() {
-//    }
-//
-//    @Test
-//    void delete() {
-//    }
+
+
 }

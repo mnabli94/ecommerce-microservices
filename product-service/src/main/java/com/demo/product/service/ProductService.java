@@ -52,9 +52,9 @@ public class ProductService {
     }
 
     private void onOrderCreated(OrderCreatedEvent event) {
-        if (event.items().stream().mapToInt(OrderCreatedEvent.Item::quantity).sum() > 10) {
-            throw new RuntimeException("Too much quantity");
-        }
+//        if (event.items().stream().mapToInt(OrderCreatedEvent.Item::quantity).sum() > 10) {
+//            throw new RuntimeException("Too much quantity");
+//        }
         meterRegistry.counter("order.event.consumed", "service", "order-service", "event", "order-created").increment();
         logger.info("Received OrderCreated: key={}, total={}, createdAt={}", event.key(), event.totalAmount(), event.createdAt());
     }

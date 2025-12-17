@@ -11,8 +11,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -35,7 +37,7 @@ class CategoryControllerTest {
         when(service.create(dto)).thenReturn(CategoryMapper.toDto(new Category(1L, "Electronics")));
 
         mvc.perform(
-                        post("/categories")
+                        post("/api/categories").with(jwt())
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isCreated())
@@ -45,7 +47,7 @@ class CategoryControllerTest {
     @Test
     void create_shouldThrowError_whenNameIsEmpty() throws Exception {
         mvc.perform(
-                        post("/categories")
+                        post("/api/categories").with(jwt())
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
                                         {"name": ""}
@@ -54,9 +56,10 @@ class CategoryControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "USER")
     void get_shouldReturn404_whenMissing() throws Exception {
         when(service.find(99L)).thenThrow(new EntityNotFoundException("not found"));
-        mvc.perform(get("/products/99"))
+        mvc.perform(get("/api/products/99"))
                 .andExpect(status().isNotFound());
     }
 }
