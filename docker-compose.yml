@@ -66,7 +66,9 @@ services:
     container_name: auth-service
     build:
       context: .
-      dockerfile: auth-service/Dockerfile
+      dockerfile: ./Dockerfile
+      args:
+        SERVICE: auth-service
     depends_on:
       user-db:
         condition: service_healthy
@@ -84,7 +86,9 @@ services:
     container_name: product-service
     build:
       context: .
-      dockerfile: product-service/Dockerfile
+      dockerfile: ./Dockerfile
+      args:
+        SERVICE: product-service
     depends_on:
       product-db:
         condition: service_healthy
@@ -105,7 +109,9 @@ services:
     container_name: order-service
     build:
       context: .
-      dockerfile: order-service/Dockerfile
+      dockerfile: ./Dockerfile
+      args:
+        SERVICE: order-service
     depends_on:
       order-db:
         condition: service_healthy
