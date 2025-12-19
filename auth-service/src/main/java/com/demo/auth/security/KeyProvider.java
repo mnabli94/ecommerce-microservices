@@ -13,6 +13,7 @@ import java.util.UUID;
 
 @Component
 public class KeyProvider {
+
     private final RSAKey rsaKey;
 
     public KeyProvider() throws NoSuchAlgorithmException {

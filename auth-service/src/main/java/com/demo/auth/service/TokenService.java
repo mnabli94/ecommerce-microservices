@@ -29,10 +29,11 @@ public class TokenService {
 
     public String createAccessToken(String subject, List<String> roles, List<String> scopes) throws JOSEException {
         Instant now = Instant.now();
-        var claims = new JWTClaimsSet.Builder()
-                .issuer("http://auth-service:8080")
+
+        JWTClaimsSet claims = new JWTClaimsSet.Builder()
+                .issuer(issuer)
                 .subject(subject)
-                .audience("order-service")
+                .audience("ecommerce-api")
                 .issueTime(Date.from(now))
                 .expirationTime(Date.from(now.plusSeconds(accessTtl)))
                 .claim("scope", String.join(" ", scopes))
@@ -40,10 +41,11 @@ public class TokenService {
                 .jwtID(UUID.randomUUID().toString())
                 .build();
 
-        SignedJWT signedJWT = new SignedJWT(
-                new JWSHeader.Builder(JWSAlgorithm.RS256).keyID(keys.getRsaKey().getKeyID()).build(),
-                claims);
+        JWSHeader jwsHeader = new JWSHeader.Builder(JWSAlgorithm.RS256)
+                .keyID(keys.getRsaKey().getKeyID())
+                .build();
 
+        SignedJWT signedJWT = new SignedJWT(jwsHeader, claims);
         signedJWT.sign(new RSASSASigner(keys.getRsaKey().toPrivateKey()));
         return signedJWT.serialize();
     }

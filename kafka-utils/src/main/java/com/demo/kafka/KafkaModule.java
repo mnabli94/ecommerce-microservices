@@ -56,7 +56,7 @@ public class KafkaModule {
         producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, common.get("bootstrap.servers"));
         producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
-        producerProps.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, false); // pas de __TypeId__
+        producerProps.put(JsonSerializer.ADD_TYPE_INFO_HEADERS, false);
         producerProps.put(ProducerConfig.ACKS_CONFIG, common.getOrDefault("acks", "all"));
         producerProps.putAll(producer == null ? Map.of() : producer);
     }
