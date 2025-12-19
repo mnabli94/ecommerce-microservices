@@ -48,7 +48,7 @@ public class CategoryService {
     @Transactional
     public void delete(Long id) {
         if (!repo.existsById(id))  {
-            throw new EntityNotFoundException("Category %d introuvable".formatted(id));
+            throw new EntityNotFoundException("Category %d not found".formatted(id));
         }
         repo.deleteById(id);
     }

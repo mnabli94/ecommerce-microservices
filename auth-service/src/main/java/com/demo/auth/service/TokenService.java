@@ -1,6 +1,6 @@
 package com.demo.auth.service;
 
-import com.demo.auth.security.KeyProvider;
+import com.demo.security.KeyProvider;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;

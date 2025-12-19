@@ -15,6 +15,11 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
+        <flywaydb.version>11.0.0</flywaydb.version>
+        <jsonwebtoken.version>0.11.5</jsonwebtoken.version>
+        <mapstruct.version>1.6.0</mapstruct.version>
+        <security.utils.version>1.0.0</security.utils.version>
+        <kafka.utils.version>1.0.0</kafka.utils.version>
     </properties>
 
     <dependencyManagement>
@@ -69,6 +74,7 @@
     </build>
 
     <modules>
+<!--        <module>security-utils</module>-->
         <module>api-gateway</module>
         <module>auth-service</module>
         <module>product-service</module>

@@ -7,11 +7,6 @@
         <version>1.0.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
-    <properties>
-        <flywaydb.version>11.0.0</flywaydb.version>
-        <jsonwebtoken.version>0.11.5</jsonwebtoken.version>
-        <mapstruct.version>1.6.0</mapstruct.version>
-    </properties>
     <artifactId>order-service</artifactId>
     <name>order-service</name>
     <description>Microservice Order (Spring Boot)</description>
@@ -73,32 +68,7 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.security</groupId>
-            <artifactId>spring-security-oauth2-jose</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.security</groupId>
-            <artifactId>spring-security-test</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-oauth2-resource-server</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-api</artifactId>
-            <version>${jsonwebtoken.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-impl</artifactId>
-            <version>${jsonwebtoken.version}</version>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-jackson</artifactId>
-            <version>${jsonwebtoken.version}</version>
-            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.mapstruct</groupId>
@@ -117,10 +87,6 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
         <dependency>
@@ -130,7 +96,17 @@
         <dependency>
             <groupId>com.demo</groupId>
             <artifactId>kafka-utils</artifactId>
-            <version>1.0.0</version>
+            <version>${kafka.utils.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.demo</groupId>
+            <artifactId>security-utils</artifactId>
+            <version>${security.utils.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
     <build>
