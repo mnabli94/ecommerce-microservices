@@ -1,4 +1,4 @@
-package com.demo.auth.security;
+package com.demo.security;
 
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
@@ -11,7 +11,6 @@ import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.UUID;
 
-@Component
 public class KeyProvider {
 
     private final RSAKey rsaKey;
