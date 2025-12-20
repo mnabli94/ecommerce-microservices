@@ -1,5 +1,7 @@
-package com.demo.kafka;
+package com.demo.kafka.utils;
 
+import com.demo.kafka.utils.producer.CorrelationIdProvider;
+import com.demo.kafka.utils.producer.EventPublisher;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PreDestroy;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -61,8 +63,8 @@ public class KafkaModule {
         producerProps.putAll(producer == null ? Map.of() : producer);
     }
 
-    public EventPublisher publisher() {
-        return new EventPublisher(kafkaTemplate);
+    public EventPublisher publisher(String producerName, CorrelationIdProvider correlationIdProvider) {
+        return new EventPublisher(kafkaTemplate, producerName, correlationIdProvider);
     }
 
     public KafkaTemplate kafkaTemplate() {

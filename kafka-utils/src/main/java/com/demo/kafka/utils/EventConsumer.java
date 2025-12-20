@@ -1,4 +1,4 @@
-package com.demo.kafka;
+package com.demo.kafka.utils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,9 +12,9 @@ public class EventConsumer<T> {
     private final KafkaModule kafkaModule;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    public EventConsumer(KafkaModule kafkaModule, KafkaTemplate<String, Object> kafkaTemplate) {
+    public EventConsumer(KafkaModule kafkaModule) {
         this.kafkaModule = kafkaModule;
-        this.kafkaTemplate = kafkaTemplate;
+        this.kafkaTemplate = kafkaModule.kafkaTemplate();
     }
 
     public ConcurrentMessageListenerContainer<String, T> register(String topic, String groupId, Class<T> valueType, Consumer<T> handler) {

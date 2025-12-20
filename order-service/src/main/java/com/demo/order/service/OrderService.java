@@ -1,9 +1,8 @@
 package com.demo.order.service;
 
-import com.demo.kafka.EventPublisher;
-import com.demo.kafka.Topics;
-import com.demo.kafka.events.OrderConfirmedEvent;
-import com.demo.kafka.events.OrderCreatedEvent;
+import com.demo.events.order.*;
+import com.demo.events.order.OrderTopics;
+import com.demo.kafka.utils.producer.EventPublisher;
 import com.demo.order.dto.in.OrderInDTO;
 import com.demo.order.dto.in.OrderItemInDTO;
 import com.demo.order.dto.out.OrderItemOutDTO;
@@ -30,8 +29,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -88,7 +85,7 @@ public class OrderService {
 
         var evt = new OrderCreatedEvent(
                 saved.getId(),
-                saved.getStatus().name(),
+                UUID.randomUUID(), //TODO user id
                 saved.getTotalAmount(),
                 saved.getCreatedAt(),
                 saved.getOrderItems().stream()
@@ -96,7 +93,7 @@ public class OrderService {
                         .toList()
         );
 
-        eventPublisher.publish(Topics.ORDER_CREATED, evt);
+        eventPublisher.publish(OrderTopics.ORDER_CREATED, evt);
         return getOrderOutDTOWithProductDetails(saved);
     }
 
@@ -156,14 +153,11 @@ public class OrderService {
 
         var evt = new OrderConfirmedEvent(
                 saved.getId(),
-                saved.getTotalAmount(),
-                saved.getCreatedAt(),
-                saved.getOrderItems().stream()
-                        .map(i -> new OrderCreatedEvent.Item(Long.valueOf(i.getProductId()), i.getQuantity(), i.getUnitPrice()))
-                        .toList()
-        );
+                saved.getId(),
+                UUID.randomUUID().toString(), //TODO payment id
+                saved.getCreatedAt());
 
-        eventPublisher.publish(Topics.ORDER_CONFIRMED, evt);
+        eventPublisher.publish(OrderTopics.ORDER_CONFIRMED, evt);
 
         return getOrderOutDTOWithProductDetails(saved);
     }

@@ -115,8 +115,8 @@ services:
     depends_on:
       order-db:
         condition: service_healthy
-      product-service:
-        condition: service_started
+#      product-service:
+#        condition: service_started
       kafka:
         condition: service_started
     environment:

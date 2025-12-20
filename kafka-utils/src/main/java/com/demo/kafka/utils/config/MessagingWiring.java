@@ -1,8 +1,10 @@
-package com.demo.product.messaging;
+package com.demo.kafka.utils.config;
 
-import com.demo.kafka.EventConsumer;
-import com.demo.kafka.EventPublisher;
-import com.demo.kafka.KafkaModule;
+import com.demo.kafka.utils.EventConsumer;
+import com.demo.kafka.utils.KafkaModule;
+import com.demo.kafka.utils.producer.CorrelationIdProvider;
+import com.demo.kafka.utils.producer.EventPublisher;
+import com.demo.kafka.utils.producer.MdcCorrelationIdProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -15,6 +17,9 @@ public class MessagingWiring {
 
     @Value("${KAFKA_BOOTSTRAP_SERVERS}")
     private String bootstrapServers;
+
+    @Value("${spring.application.name:unknown-service}")
+    private String producerName;
 
     @Bean
     public KafkaModule kafkaModule(ObjectMapper mapper) {
@@ -34,12 +39,17 @@ public class MessagingWiring {
     }
 
     @Bean
-    public EventPublisher eventPublisher(KafkaModule module) {
-        return module.publisher();
+    public CorrelationIdProvider correlationIdProvider() {
+        return new MdcCorrelationIdProvider();
+    }
+
+    @Bean
+    public EventPublisher eventPublisher(KafkaModule module, CorrelationIdProvider correlationIdProvider) {
+        return module.publisher(producerName, correlationIdProvider);
     }
 
     @Bean
     public EventConsumer eventConsumer(KafkaModule module) {
-        return new EventConsumer(module, module.kafkaTemplate());
+        return new EventConsumer(module);
     }
 }

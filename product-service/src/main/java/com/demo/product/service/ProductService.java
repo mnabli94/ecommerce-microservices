@@ -1,9 +1,9 @@
 package com.demo.product.service;
 
-import com.demo.kafka.EventConsumer;
-import com.demo.kafka.Topics;
-import com.demo.kafka.events.OrderConfirmedEvent;
-import com.demo.kafka.events.OrderCreatedEvent;
+import com.demo.events.order.OrderConfirmedEvent;
+import com.demo.events.order.OrderCreatedEvent;
+import com.demo.events.order.OrderTopics;
+import com.demo.kafka.utils.EventConsumer;
 import com.demo.product.mapper.ProductMapper;
 import com.demo.product.entity.Category;
 import com.demo.product.entity.Product;
@@ -43,8 +43,8 @@ public class ProductService {
 
     @PostConstruct
     void init() {
-        orderCreatedEventConsumer.registerWithDlq(Topics.ORDER_CREATED, "product-service", OrderCreatedEvent.class, this::onOrderCreated);
-        orderConfirmedEventConsumer.registerWithDlq(Topics.ORDER_CONFIRMED, "product-service", OrderConfirmedEvent.class, this::onOrderConfirmed);
+        orderCreatedEventConsumer.registerWithDlq(OrderTopics.ORDER_CREATED, "product-service", OrderCreatedEvent.class, this::onOrderCreated);
+        orderConfirmedEventConsumer.registerWithDlq(OrderTopics.ORDER_CONFIRMED, "product-service", OrderConfirmedEvent.class, this::onOrderConfirmed);
         orderCreatedEventConsumer.registerDlqConsumer("order.created.dlq", "product-service-dlq", OrderCreatedEvent.class,
                 event -> logger.error("DLQ event received: {}", event));
         orderConfirmedEventConsumer.registerDlqConsumer("order.confirmed.dlq", "product-service-dlq", OrderConfirmedEvent.class,
@@ -55,16 +55,18 @@ public class ProductService {
 //        if (event.items().stream().mapToInt(OrderCreatedEvent.Item::quantity).sum() > 10) {
 //            throw new RuntimeException("Too much quantity");
 //        }
+        logger.info("OrderCreated -  event = {}", event);
         meterRegistry.counter("order.event.consumed", "service", "order-service", "event", "order-created").increment();
-        logger.info("Received OrderCreated: key={}, total={}, createdAt={}", event.key(), event.totalAmount(), event.createdAt());
+        logger.info("Received OrderCreated: key={}, total={}, .occurredAt={}", event.key(), event.totalAmount(), event.occurredAt());
     }
 
     private void onOrderConfirmed(OrderConfirmedEvent event) {
-        if (event.totalAmount().compareTo(BigDecimal.valueOf(1000)) > 0) {
-            throw new RuntimeException("Too much total amunt");
-        }
+//        if (event.totalAmount().compareTo(BigDecimal.valueOf(1000)) > 0) {
+//            throw new RuntimeException("Too much total amunt");
+//        }
+        logger.info("onOrderCreated event = payload ={}",event);
         meterRegistry.counter("order.event.consumed", "service", "order-service", "event", "order-confirmed").increment();
-        logger.info("Received OrderCreated: key={}, total={}, createdAt={}", event.key(), event.totalAmount(), event.createdAt());
+        logger.info("Received OrderConfirmed: key={}, createdAt={}", event.key(), event.occurredAt());
     }
 
     public ProductDTO create(ProductDTO dto) {

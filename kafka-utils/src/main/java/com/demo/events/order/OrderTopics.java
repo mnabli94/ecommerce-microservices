@@ -1,9 +1,7 @@
-package com.demo.kafka;
+package com.demo.events.order;
 
-public final class Topics {
+public final class OrderTopics {
     public static final String ORDER_CREATED = "order.created";
     public static final String ORDER_CONFIRMED = "order.confirmed";
-
-    private Topics() {
-    }
+    public static final String ORDER_CANCELLED = "order.cancelled";
 }
