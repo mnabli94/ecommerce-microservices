@@ -7,6 +7,7 @@ import com.demo.auth.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -30,7 +31,8 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping()
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> createUser(@RequestBody @Valid CreateUserRequest request) {
         User savedUser = userService.createUser(request);
         URI location = ServletUriComponentsBuilder.fromCurrentRequestUri()

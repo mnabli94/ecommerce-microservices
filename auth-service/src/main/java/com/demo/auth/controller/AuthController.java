@@ -1,11 +1,7 @@
 package com.demo.auth.controller;
 
 import com.demo.auth.dto.*;
-import com.demo.auth.security.KeyProvider;
 import com.demo.auth.service.AuthService;
-import com.demo.auth.service.RefreshService;
-import com.demo.auth.service.TokenService;
-import com.demo.auth.service.UserService;
 import com.nimbusds.jose.JOSEException;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +13,7 @@ public class AuthController {
 
     private final AuthService authService;
 
-    public AuthController(UserService userService, TokenService tokenService, RefreshService refreshService, AuthService authService, KeyProvider keys) {
+    public AuthController(AuthService authService) {
         this.authService = authService;
     }
 
