@@ -14,13 +14,13 @@ import com.demo.product.repository.ProductSpecifications;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityNotFoundException;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-
 import java.math.BigDecimal;
 
 @Service
@@ -43,32 +43,69 @@ public class ProductService {
 
     @PostConstruct
     void init() {
-        orderCreatedEventConsumer.registerWithDlq(OrderTopics.ORDER_CREATED, "product-service", OrderCreatedEvent.class, this::onOrderCreated);
-        orderConfirmedEventConsumer.registerWithDlq(OrderTopics.ORDER_CONFIRMED, "product-service", OrderConfirmedEvent.class, this::onOrderConfirmed);
-        orderCreatedEventConsumer.registerDlqConsumer("order.created.dlq", "product-service-dlq", OrderCreatedEvent.class,
-                event -> logger.error("DLQ event received: {}", event));
-        orderConfirmedEventConsumer.registerDlqConsumer("order.confirmed.dlq", "product-service-dlq", OrderConfirmedEvent.class,
-                event -> logger.error("DLQ event received: {}", event));
+        orderCreatedEventConsumer.registerWithDlqRecord(
+                OrderTopics.ORDER_CREATED,
+                "product-service",
+                OrderTopics.ORDER_CREATED + ".dlq",
+                OrderCreatedEvent.class,
+                this::onOrderCreated
+        );
+
+        orderConfirmedEventConsumer.registerWithDlqRecord(
+                OrderTopics.ORDER_CONFIRMED,
+                "product-service",
+                OrderTopics.ORDER_CONFIRMED + ".dlq",
+                OrderConfirmedEvent.class,
+                this::onOrderConfirmed
+        );
+
+
+//        orderCreatedEventConsumer.registerWithDlq(OrderTopics.ORDER_CREATED, "product-service", OrderCreatedEvent.class, this::onOrderCreated);
+//        orderConfirmedEventConsumer.registerWithDlq(OrderTopics.ORDER_CONFIRMED, "product-service", OrderConfirmedEvent.class, this::onOrderConfirmed);
+//        orderCreatedEventConsumer.registerDlqConsumer("order.created.dlq", "product-service-dlq", OrderCreatedEvent.class,
+//                event -> logger.error("DLQ event received: {}", event));
+//        orderConfirmedEventConsumer.registerDlqConsumer("order.confirmed.dlq", "product-service-dlq", OrderConfirmedEvent.class,
+//                event -> logger.error("DLQ event received: {}", event));
     }
 
-    private void onOrderCreated(OrderCreatedEvent event) {
-//        if (event.items().stream().mapToInt(OrderCreatedEvent.Item::quantity).sum() > 10) {
-//            throw new RuntimeException("Too much quantity");
-//        }
-        logger.info("OrderCreated -  event = {}", event);
-        meterRegistry.counter("order.event.consumed", "service", "order-service", "event", "order-created").increment();
-        logger.info("Received OrderCreated: key={}, total={}, .occurredAt={}", event.key(), event.totalAmount(), event.occurredAt());
+    private void onOrderConfirmed(ConsumerRecord<String, OrderConfirmedEvent> record) {
+        var event = record.value();
+
+        logger.info("Received OrderCreated: kafkaKey={}, eventId={}, paymentReference={}, occurredAt={}",
+                record.key(), event.key(), event.paymentReference(), event.occurredAt());
     }
 
-    private void onOrderConfirmed(OrderConfirmedEvent event) {
-//        if (event.totalAmount().compareTo(BigDecimal.valueOf(1000)) > 0) {
-//            throw new RuntimeException("Too much total amunt");
-//        }
-        logger.info("onOrderCreated event = payload ={}",event);
-        meterRegistry.counter("order.event.consumed", "service", "order-service", "event", "order-confirmed").increment();
-        logger.info("Received OrderConfirmed: key={}, createdAt={}", event.key(), event.occurredAt());
+    private void onOrderCreated(ConsumerRecord<String, OrderCreatedEvent> record) {
+        var event = record.value();
+        if (event.items().stream().mapToInt(OrderCreatedEvent.Item::quantity).sum() > 10) {
+            throw new RuntimeException("Too much quantity");
+        }
+        if (event.totalAmount().compareTo(BigDecimal.valueOf(1000)) > 0) {
+            throw new RuntimeException("Too much total amunt");
+        }
+        logger.info("Received OrderCreated: kafkaKey={}, eventId={}, total={}, occurredAt={}",
+                record.key(), event.key(), event.totalAmount(), event.occurredAt());
     }
 
+
+//    private void onOrderCreated(OrderCreatedEvent event) {
+////        if (event.items().stream().mapToInt(OrderCreatedEvent.Item::quantity).sum() > 10) {
+////            throw new RuntimeException("Too much quantity");
+////        }
+//        logger.info("OrderCreated -  event = {}", event);
+//        meterRegistry.counter("order.event.consumed", "service", "order-service", "event", "order-created").increment();
+//        logger.info("Received OrderCreated: key={}, total={}, .occurredAt={}", event.key(), event.totalAmount(), event.occurredAt());
+//    }
+//
+//    private void onOrderConfirmed(OrderConfirmedEvent event) {
+
+    /// /        if (event.totalAmount().compareTo(BigDecimal.valueOf(1000)) > 0) {
+    /// /            throw new RuntimeException("Too much total amunt");
+    /// /        }
+//        logger.info("onOrderCreated event = payload ={}",event);
+//        meterRegistry.counter("order.event.consumed", "service", "order-service", "event", "order-confirmed").increment();
+//        logger.info("Received OrderConfirmed: key={}, createdAt={}", event.key(), event.occurredAt());
+//    }
     public ProductDTO create(ProductDTO dto) {
         Category category = categoryRepository.findById(dto.categoryId())
                 .orElseThrow(() -> new EntityNotFoundException("Category not found with id: %d".formatted(dto.categoryId())));

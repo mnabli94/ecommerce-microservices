@@ -5,6 +5,7 @@ import com.demo.kafka.utils.producer.EventPublisher;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PreDestroy;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -85,8 +86,23 @@ public class KafkaModule {
         return container;
     }
 
+    public <T> ConcurrentMessageListenerContainer<String, T> registerConsumerRecord(String topic, String groupId, Class<T> valueType, Consumer<ConsumerRecord<String, T>> handler) {
+        var props = new HashMap<>(consumerProps);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+        props.put(org.springframework.kafka.support.serializer.JsonDeserializer.TRUSTED_PACKAGES, "*");
+
+        var consumerFactory = new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(), new JsonDeserializer<>(valueType, objectMapper, false));
+
+        var container = new ConcurrentMessageListenerContainer<>(consumerFactory, new ContainerProperties(topic));
+        container.setupMessageListener((MessageListener<String, T>) handler::accept);
+        container.start();
+        containers.put(topic + "-" + groupId, container);
+        return container;
+    }
+
     @PreDestroy
-    private void shutdown(){
+    private void shutdown() {
         containers.values().forEach(ConcurrentMessageListenerContainer::stop);
     }
 }

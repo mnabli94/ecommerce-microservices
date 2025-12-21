@@ -1,11 +1,13 @@
 package com.demo.product.service;
 
+import com.demo.events.order.OrderCreatedEvent;
 import com.demo.product.dto.ProductDTO;
 import com.demo.product.mapper.ProductMapper;
 import com.demo.product.entity.Category;
 import com.demo.product.entity.Product;
 import com.demo.product.repository.CategoryRepository;
 import com.demo.product.repository.ProductRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,8 +24,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -157,7 +161,6 @@ class ProductServiceTest {
         Category category = new Category(1L, "Cat2");
         var products = List.of(
                 new Product(1L, "Phone", new BigDecimal("299.99"), true, category)
-//                , new Product(2L, "Laptop", new BigDecimal("999.99"), true, category)
         );
         Pageable pageable = PageRequest.of(0,5);
         var page = new PageImpl<>(products, pageable, products.size());
@@ -168,5 +171,27 @@ class ProductServiceTest {
         assertEquals( 1, output.getTotalElements());
         assertEquals("Phone", output.getContent().get(0).name());
 
+    }
+
+    @Test
+    void shouldSerializeAndDeserializeOrderCreatedEvent() throws Exception {
+        ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
+
+        OrderCreatedEvent event = new OrderCreatedEvent(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                new BigDecimal("12.50"),
+                OffsetDateTime.now(),
+                List.of(new OrderCreatedEvent.Item(1L, 2, new BigDecimal("6.25")))
+        );
+
+        String json = mapper.writeValueAsString(event);
+        OrderCreatedEvent back = mapper.readValue(json, OrderCreatedEvent.class);
+
+        assertNotNull(back.key());
+        assertNotNull(back.orderId());
+        assertNotNull(back.occurredAt());
+        assertEquals(event.totalAmount(), back.totalAmount());
+        assertEquals(1, back.items().size());
     }
 }
