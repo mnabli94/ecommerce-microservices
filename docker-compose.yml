@@ -59,6 +59,8 @@ services:
       context: .
       dockerfile: api-gateway/Dockerfile
     ports: [ "4000:4000" ]
+    environment:
+      AUTH_SERVICE_URL: http://auth-service:8080
     networks:
       - app-network
 
