@@ -1,7 +1,7 @@
 services:
   product-db:
     image: postgres:15-alpine
-    container_name: PRODUCT_DB
+    container_name: product-db
     environment:
       POSTGRES_DB: productsdb
       POSTGRES_USER: demo
@@ -19,7 +19,7 @@ services:
 
   order-db:
     image: postgres:15-alpine
-    container_name: ORDER_DB
+    container_name: order-db
     environment:
       POSTGRES_DB: ordersdb
       POSTGRES_USER: demo
@@ -37,7 +37,7 @@ services:
 
   user-db:
     image: postgres:15-alpine
-    container_name: USER_DB
+    container_name: user-db
     environment:
       POSTGRES_DB: usersdb
       POSTGRES_USER: demo
@@ -139,6 +139,19 @@ services:
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     ports: [ "9090:9090" ]
+    networks:
+      - app-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
     networks:
       - app-network
 

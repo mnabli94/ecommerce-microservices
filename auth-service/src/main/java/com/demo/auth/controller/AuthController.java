@@ -4,9 +4,11 @@ import com.demo.auth.dto.*;
 import com.demo.auth.service.AuthService;
 import com.nimbusds.jose.JOSEException;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -19,6 +21,7 @@ public class AuthController {
 
     @PostMapping("/token")
     public ResponseEntity<TokenResponse> token(@RequestBody @Valid LoginRequest loginRequest) throws JOSEException {
+        log.debug("Logging message within token()");
         return ResponseEntity.ok(authService.login(loginRequest));
     }
 

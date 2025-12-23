@@ -1,6 +1,16 @@
 server:
   port: 4000
 
+management:
+  endpoints:
+    web:
+      base-path: /gateway-actuator
+      exposure:
+        include: health,info,metrics,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
 spring:
   application:
     name: api-gateway
@@ -27,7 +37,26 @@ spring:
           predicates:
             - Path=/api/orders/**
 
+        - id: order-actuator
+          uri: http://order-service:8082
+          predicates:
+            - Path=/actuator/order/**
+          filters:
+            - RewritePath=/actuator/order/(?<segment>.*), /actuator/${segment}
 
+        - id: product-actuator
+          uri: http://product-service:8081
+          predicates:
+            - Path=/actuator/product/**
+          filters:
+            - RewritePath=/actuator/product/(?<segment>.*), /actuator/${segment}
+
+        - id: auth-actuator
+          uri: http://auth-service:8080
+          predicates:
+            - Path=/actuator/auth/**
+          filters:
+            - RewritePath=/actuator/auth/(?<segment>.*), /actuator/${segment}
 
 
 
