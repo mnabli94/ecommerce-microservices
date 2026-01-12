@@ -19,9 +19,14 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+
 @Validated
 @RestController
 @RequestMapping("/api/products")
+@Tag(name = "Product Management", description = "Endpoints for managing products")
 public class ProductController {
 
     private final ProductService service;
@@ -31,11 +36,16 @@ public class ProductController {
         this.service = service;
     }
 
+    @Operation(summary = "Create product", description = "Creates a new product")
+    @ApiResponse(responseCode = "201", description = "Product created successfully")
     @PostMapping
     public ResponseEntity<ProductDTO> create(@Valid @RequestBody ProductDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.create(dto));
     }
 
+    @Operation(summary = "Get product by ID", description = "Retrieves a product by its unique identifier")
+    @ApiResponse(responseCode = "200", description = "Product found")
+    @ApiResponse(responseCode = "404", description = "Product not found")
     @GetMapping("/{id}")
     public ResponseEntity<ProductDTO> get(@NotNull @PathVariable Long id) {
         logger.info("call /api/products/{}", id);
@@ -43,6 +53,8 @@ public class ProductController {
         return ResponseEntity.ok(service.find(id));
     }
 
+    @Operation(summary = "Search products", description = "Retrieves a paginated list of products with optional filtering")
+    @ApiResponse(responseCode = "200", description = "List of products")
     @GetMapping()
     public ResponseEntity<Page<ProductDTO>> get(
             @RequestParam(defaultValue = "0") @Min(0) int page,
@@ -61,11 +73,16 @@ public class ProductController {
         return ResponseEntity.ok(service.findAll(name, categoryId, minPrice, maxPrice, pageable));
     }
 
+    @Operation(summary = "Update product", description = "Updates an existing product")
+    @ApiResponse(responseCode = "200", description = "Product updated successfully")
+    @ApiResponse(responseCode = "404", description = "Product not found")
     @PutMapping("/{id}")
     public ResponseEntity<ProductDTO> update(@NotNull @PathVariable Long id, @Valid @RequestBody ProductDTO dto) {
         return ResponseEntity.ok(service.update(id, dto));
     }
 
+    @Operation(summary = "Delete product", description = "Deletes a product by ID")
+    @ApiResponse(responseCode = "204", description = "Product deleted successfully")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@NotNull @PathVariable Long id) {

@@ -26,93 +26,133 @@ import java.math.BigDecimal;
 @Service
 public class ProductService {
 
-    private static final Logger logger = LoggerFactory.getLogger(ProductService.class);
-    private final ProductRepository productRepository;
-    private final CategoryRepository categoryRepository;
-    private final EventConsumer<OrderConfirmedEvent> orderConfirmedEventConsumer;
-    private final EventConsumer<OrderCreatedEvent> orderCreatedEventConsumer;
-    private final MeterRegistry meterRegistry;
+        private static final Logger logger = LoggerFactory.getLogger(ProductService.class);
+        private final ProductRepository productRepository;
+        private final CategoryRepository categoryRepository;
+        private final EventConsumer<OrderConfirmedEvent> orderConfirmedEventConsumer;
+        private final EventConsumer<OrderCreatedEvent> orderCreatedEventConsumer;
+        private final MeterRegistry meterRegistry;
 
-    public ProductService(ProductRepository productRepository, CategoryRepository categoryRepository, EventConsumer<OrderConfirmedEvent> orderConfirmedEventConsumer, EventConsumer<OrderCreatedEvent> orderCreatedEventConsumer, MeterRegistry meterRegistry) {
-        this.productRepository = productRepository;
-        this.categoryRepository = categoryRepository;
-        this.orderConfirmedEventConsumer = orderConfirmedEventConsumer;
-        this.orderCreatedEventConsumer = orderCreatedEventConsumer;
-        this.meterRegistry = meterRegistry;
-    }
-
-    @PostConstruct
-    void init() {
-        orderCreatedEventConsumer.registerWithDlq(OrderTopics.ORDER_CREATED, "product-service", OrderCreatedEvent.class, this::onOrderCreated);
-        orderConfirmedEventConsumer.registerWithDlq(OrderTopics.ORDER_CONFIRMED, "product-service", OrderConfirmedEvent.class, this::onOrderConfirmed);
-        orderCreatedEventConsumer.registerDlqConsumer("order.created.dlq", "product-service-dlq", OrderCreatedEvent.class,
-                event -> logger.error("DLQ event received: {}", event));
-        orderConfirmedEventConsumer.registerDlqConsumer("order.confirmed.dlq", "product-service-dlq", OrderConfirmedEvent.class,
-                event -> logger.error("DLQ event received: {}", event));
-    }
-
-    private void onOrderCreated(OrderCreatedEvent event) {
-//        if (event.items().stream().mapToInt(OrderCreatedEvent.Item::quantity).sum() > 10) {
-//            throw new RuntimeException("Too much quantity");
-//        }
-        logger.info("OrderCreated -  event = {}", event);
-        meterRegistry.counter("order.event.consumed", "service", "order-service", "event", "order-created").increment();
-        logger.info("Received OrderCreated: key={}, total={}, .occurredAt={}", event.key(), event.totalAmount(), event.occurredAt());
-    }
-
-    private void onOrderConfirmed(OrderConfirmedEvent event) {
-//        if (event.totalAmount().compareTo(BigDecimal.valueOf(1000)) > 0) {
-//            throw new RuntimeException("Too much total amunt");
-//        }
-        logger.info("onOrderCreated event = payload ={}",event);
-        meterRegistry.counter("order.event.consumed", "service", "order-service", "event", "order-confirmed").increment();
-        logger.info("Received OrderConfirmed: key={}, createdAt={}", event.key(), event.occurredAt());
-    }
-
-    public ProductDTO create(ProductDTO dto) {
-        Category category = categoryRepository.findById(dto.categoryId())
-                .orElseThrow(() -> new EntityNotFoundException("Category not found with id: %d".formatted(dto.categoryId())));
-        Product product = new Product(null, dto.name(), dto.price(), dto.inStock(), category);
-        return ProductMapper.toDto(productRepository.save(product));
-    }
-
-    public ProductDTO find(Long id) {
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Product not found with id: %d".formatted(id)));
-        return ProductMapper.toDto(product);
-    }
-
-    public ProductDTO update(Long id, ProductDTO dto) {
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Product not found with id: %d".formatted(id)));
-
-        Category category = categoryRepository.findById(dto.categoryId())
-                .orElseThrow(() -> new EntityNotFoundException("Category not found with id: %d".formatted(dto.categoryId())));
-
-        product.setName(dto.name());
-        product.setPrice(dto.price());
-        product.setInStock(dto.inStock());
-        product.setCategory(category);
-        return ProductMapper.toDto(productRepository.save(product));
-    }
-
-    public void delete(Long id) {
-        if (!productRepository.existsById(id)) {
-            throw new EntityNotFoundException("Product not found with id: %d".formatted(id));
+        public ProductService(ProductRepository productRepository, CategoryRepository categoryRepository,
+                        EventConsumer<OrderConfirmedEvent> orderConfirmedEventConsumer,
+                        EventConsumer<OrderCreatedEvent> orderCreatedEventConsumer, MeterRegistry meterRegistry) {
+                this.productRepository = productRepository;
+                this.categoryRepository = categoryRepository;
+                this.orderConfirmedEventConsumer = orderConfirmedEventConsumer;
+                this.orderCreatedEventConsumer = orderCreatedEventConsumer;
+                this.meterRegistry = meterRegistry;
         }
-        productRepository.deleteById(id);
-    }
 
-    public Page<ProductDTO> findAll(String name,
-                                    Long categoryId,
-                                    BigDecimal minPrice,
-                                    BigDecimal maxPrice,
-                                    Pageable pageable) {
-        Specification<Product> spec = Specification
-                .where(ProductSpecifications.categoryIdEquals(categoryId))
-                .and(ProductSpecifications.nameContains(name))
-                .and(ProductSpecifications.minPrice(minPrice))
-                .and(ProductSpecifications.maxPrice(maxPrice));
-        return productRepository.findAll(spec, pageable).map(ProductMapper::toDto);
-    }
+        @PostConstruct
+        void init() {
+                orderCreatedEventConsumer.registerWithDlq(OrderTopics.ORDER_CREATED, "product-service",
+                                OrderCreatedEvent.class,
+                                this::onOrderCreated);
+                orderConfirmedEventConsumer.registerWithDlq(OrderTopics.ORDER_CONFIRMED, "product-service",
+                                OrderConfirmedEvent.class, this::onOrderConfirmed);
+                orderCreatedEventConsumer.registerDlqConsumer("order.created.dlq", "product-service-dlq",
+                                OrderCreatedEvent.class,
+                                event -> logger.error("DLQ event received: {}", event));
+                orderConfirmedEventConsumer.registerDlqConsumer("order.confirmed.dlq", "product-service-dlq",
+                                OrderConfirmedEvent.class,
+                                event -> logger.error("DLQ event received: {}", event));
+        }
+
+        private void onOrderCreated(OrderCreatedEvent event) {
+                // if (event.items().stream().mapToInt(OrderCreatedEvent.Item::quantity).sum() >
+                // 10) {
+                // throw new RuntimeException("Too much quantity");
+                // }
+                logger.info("OrderCreated -  event = {}", event);
+                meterRegistry.counter("order.event.consumed", "service", "order-service", "event", "order-created")
+                                .increment();
+                logger.info("Received OrderCreated: key={}, total={}, .occurredAt={}", event.key(), event.totalAmount(),
+                                event.occurredAt());
+        }
+
+        private void onOrderConfirmed(OrderConfirmedEvent event) {
+                // if (event.totalAmount().compareTo(BigDecimal.valueOf(1000)) > 0) {
+                // throw new RuntimeException("Too much total amunt");
+                // }
+                logger.info("onOrderCreated event = payload ={}", event);
+                meterRegistry.counter("order.event.consumed", "service", "order-service", "event", "order-confirmed")
+                                .increment();
+                logger.info("Received OrderConfirmed: key={}, createdAt={}", event.key(), event.occurredAt());
+        }
+
+        public ProductDTO create(ProductDTO dto) {
+                logger.info("Creating product: name={}, categoryId={}", dto.name(), dto.categoryId());
+                Category category = categoryRepository.findById(dto.categoryId())
+                                .orElseThrow(() -> {
+                                        logger.error("Category not found: id={}", dto.categoryId());
+                                        return new EntityNotFoundException(
+                                                        "Category not found with id: %d".formatted(dto.categoryId()));
+                                });
+                Product product = new Product(null, dto.name(), dto.price(), dto.inStock(), category);
+                ProductDTO saved = ProductMapper.toDto(productRepository.save(product));
+                logger.info("Product created successfully: id={}", saved.id());
+                return saved;
+        }
+
+        public ProductDTO find(Long id) {
+                logger.debug("Finding product by id: {}", id);
+                Product product = productRepository.findById(id)
+                                .orElseThrow(() -> {
+                                        logger.error("Product not found: id={}", id);
+                                        return new EntityNotFoundException(
+                                                        "Product not found with id: %d".formatted(id));
+                                });
+                return ProductMapper.toDto(product);
+        }
+
+        public ProductDTO update(Long id, ProductDTO dto) {
+                logger.info("Updating product: id={}", id);
+                Product product = productRepository.findById(id)
+                                .orElseThrow(() -> {
+                                        logger.error("Product not found for update: id={}", id);
+                                        return new EntityNotFoundException(
+                                                        "Product not found with id: %d".formatted(id));
+                                });
+
+                Category category = categoryRepository.findById(dto.categoryId())
+                                .orElseThrow(() -> {
+                                        logger.error("Category not found for product update: categoryId={}",
+                                                        dto.categoryId());
+                                        return new EntityNotFoundException(
+                                                        "Category not found with id: %d".formatted(dto.categoryId()));
+                                });
+
+                product.setName(dto.name());
+                product.setPrice(dto.price());
+                product.setInStock(dto.inStock());
+                product.setCategory(category);
+                logger.info("Product updated successfully: id={}", id);
+                return ProductMapper.toDto(productRepository.save(product));
+        }
+
+        public void delete(Long id) {
+                logger.info("Deleting product: id={}", id);
+                if (!productRepository.existsById(id)) {
+                        logger.error("Product not found for deletion: id={}", id);
+                        throw new EntityNotFoundException("Product not found with id: %d".formatted(id));
+                }
+                productRepository.deleteById(id);
+                logger.info("Product deleted successfully: id={}", id);
+        }
+
+        public Page<ProductDTO> findAll(String name,
+                        Long categoryId,
+                        BigDecimal minPrice,
+                        BigDecimal maxPrice,
+                        Pageable pageable) {
+                logger.debug("Finding products: name={}, categoryId={}, minPrice={}, maxPrice={}", name, categoryId,
+                                minPrice,
+                                maxPrice);
+                Specification<Product> spec = Specification
+                                .where(ProductSpecifications.categoryIdEquals(categoryId))
+                                .and(ProductSpecifications.nameContains(name))
+                                .and(ProductSpecifications.minPrice(minPrice))
+                                .and(ProductSpecifications.maxPrice(maxPrice));
+                return productRepository.findAll(spec, pageable).map(ProductMapper::toDto);
+        }
 }

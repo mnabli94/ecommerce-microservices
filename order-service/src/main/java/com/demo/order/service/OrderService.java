@@ -43,10 +43,10 @@ public class OrderService {
     private final EventPublisher eventPublisher;
 
     public OrderService(OrderRepository orderRepository,
-                        OrderMapper orderMapper,
-                        ProductCaller productCaller,
-                        MeterRegistry meterRegistry,
-                        EventPublisher eventPublisher) {
+            OrderMapper orderMapper,
+            ProductCaller productCaller,
+            MeterRegistry meterRegistry,
+            EventPublisher eventPublisher) {
         this.orderRepository = orderRepository;
         this.orderMapper = orderMapper;
         this.productCaller = productCaller;
@@ -56,12 +56,12 @@ public class OrderService {
 
     @Transactional
     public OrderOutDTO createOrder(OrderInDTO dto) {
+        log.info("Creating order with {} items", dto.orderItems().size());
         List<OrderItem> mergedOrderItems = dto.orderItems().stream().collect(Collectors.toMap(
                 OrderItemInDTO::productId,
                 Function.identity(),
                 (a, b) -> new OrderItemInDTO(a.productId(), a.quantity() + b.quantity(), a.unitPrice()),
-                LinkedHashMap::new
-        )).values().stream()
+                LinkedHashMap::new)).values().stream()
                 .map(orderMapper::toEntity)
                 .toList();
         Order order = orderMapper.toEntity(dto);
@@ -76,34 +76,39 @@ public class OrderService {
                 item.setQuantity(1);
             }
             if (item.getUnitPrice() == null || item.getUnitPrice().compareTo(BigDecimal.ZERO) <= 0) {
-                throw new IllegalArgumentException("Invalid unit price for product id: %s".formatted(item.getProductId()));
+                throw new IllegalArgumentException(
+                        "Invalid unit price for product id: %s".formatted(item.getProductId()));
             }
         });
         order.calculateTotalAmount();
         Order saved = orderRepository.save(order);
+        log.info("Order created: id={}, totalAmount={}", saved.getId(), saved.getTotalAmount());
         meterRegistry.counter("order.created", "service", "order-service").increment();
 
         var evt = new OrderCreatedEvent(
                 saved.getId(),
-                UUID.randomUUID(), //TODO user id
+                UUID.randomUUID(), // TODO user id
                 saved.getTotalAmount(),
                 saved.getCreatedAt(),
                 saved.getOrderItems().stream()
-                        .map(i -> new OrderCreatedEvent.Item(Long.valueOf(i.getProductId()), i.getQuantity(), i.getUnitPrice()))
-                        .toList()
-        );
+                        .map(i -> new OrderCreatedEvent.Item(Long.valueOf(i.getProductId()), i.getQuantity(),
+                                i.getUnitPrice()))
+                        .toList());
 
         eventPublisher.publish(OrderTopics.ORDER_CREATED, evt);
+        log.debug("OrderCreatedEvent published: orderId={}", saved.getId());
         return getOrderOutDTOWithProductDetails(saved);
     }
 
     public OrderOutDTO find(UUID id) {
+        log.debug("Finding order by id: {}", id);
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Order not found with id: %s".formatted(id)));
         return getOrderOutDTOWithProductDetails(order);
     }
 
-    public Page<OrderOutDTO> findAll(OrderStatus status, BigDecimal minAmount, OffsetDateTime from, OffsetDateTime to, Pageable pageable) {
+    public Page<OrderOutDTO> findAll(OrderStatus status, BigDecimal minAmount, OffsetDateTime from, OffsetDateTime to,
+            Pageable pageable) {
         Specification<Order> spec = Specification
                 .where(OrderSpecifications.statusEquals(status))
                 .and(OrderSpecifications.minAmount(minAmount))
@@ -139,9 +144,9 @@ public class OrderService {
         }
     }
 
-
     @Transactional
     public OrderOutDTO confirm(UUID id) {
+        log.info("Confirming order: id={}", id);
         var order = orderRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Order not found"));
         if (order.getStatus() != OrderStatus.PENDING) {
             log.error("Illegal status {} for the order with id: {}", order.getStatus(), id);
@@ -149,27 +154,32 @@ public class OrderService {
         }
         order.setStatus(OrderStatus.CONFIRMED);
         var saved = orderRepository.save(order);
+        log.info("Order confirmed: id={}", id);
         meterRegistry.counter("order.confirmed", "service", "order-service").increment();
 
         var evt = new OrderConfirmedEvent(
                 saved.getId(),
                 saved.getId(),
-                UUID.randomUUID().toString(), //TODO payment id
+                UUID.randomUUID().toString(), // TODO payment id
                 saved.getCreatedAt());
 
         eventPublisher.publish(OrderTopics.ORDER_CONFIRMED, evt);
+        log.debug("OrderConfirmedEvent published: orderId={}", saved.getId());
 
         return getOrderOutDTOWithProductDetails(saved);
     }
 
     @Transactional
     public OrderOutDTO cancel(UUID id) {
+        log.info("Cancelling order: id={}", id);
         var order = orderRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Order not found"));
         if (order.getStatus() == OrderStatus.CONFIRMED) {
+            log.error("Cannot cancel CONFIRMED order: id={}", id);
             throw new IllegalStateException("CONFIRMED orders cannot be cancelled");
         }
         order.setStatus(OrderStatus.CANCELLED);
         var saved = orderRepository.save(order);
+        log.info("Order cancelled: id={}", id);
         meterRegistry.counter("order.cancelled", "service", "order-service").increment();
         return getOrderOutDTOWithProductDetails(saved);
     }
@@ -178,7 +188,7 @@ public class OrderService {
         OrderOutDTO result = orderMapper.toOutDto(saved);
         List<ProductDTO> products = saved.getOrderItems()
                 .stream()
-                .map(item ->  productCaller.getProduct(Long.parseLong(item.getProductId()))).toList();
+                .map(item -> productCaller.getProduct(Long.parseLong(item.getProductId()))).toList();
 
         var finalOrderItems = saved.getOrderItems().stream().map(item -> {
             var pid = Long.valueOf(item.getProductId());
@@ -189,7 +199,8 @@ public class OrderService {
             return new OrderItemOutDTO(itemDto.id(), product, itemDto.quantity(), itemDto.unitPrice());
         }).toList();
 
-        return new OrderOutDTO(result.id(), result.status(), result.shippingAddress(), finalOrderItems, result.totalAmount(), result.createdAt());
+        return new OrderOutDTO(result.id(), result.status(), result.shippingAddress(), finalOrderItems,
+                result.totalAmount(), result.createdAt());
     }
 
 }

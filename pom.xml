@@ -20,6 +20,7 @@
         <mapstruct.version>1.6.0</mapstruct.version>
         <security.utils.version>1.0.0</security.utils.version>
         <kafka.utils.version>1.0.0</kafka.utils.version>
+        <springdoc.version>2.5.0</springdoc.version>
     </properties>
 
     <dependencyManagement>
@@ -47,6 +48,7 @@
                 <plugin>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring-boot.version}</version>
                     <executions>
                         <execution>
                             <goals>
@@ -78,5 +80,7 @@
         <module>auth-service</module>
         <module>product-service</module>
         <module>order-service</module>
+        <module>kafka-utils</module>
+        <module>security-utils</module>
     </modules>
 </project>

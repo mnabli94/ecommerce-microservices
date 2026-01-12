@@ -14,9 +14,14 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+
 @RestController
 @RequestMapping("/api/user")
 @Validated
+@Tag(name = "User Management", description = "Endpoints for managing users")
 public class UserController {
     private final UserService userService;
 
@@ -24,6 +29,9 @@ public class UserController {
         this.userService = userService;
     }
 
+    @Operation(summary = "Get user by username", description = "Retrieves public user information")
+    @ApiResponse(responseCode = "200", description = "User found")
+    @ApiResponse(responseCode = "404", description = "User not found")
     @GetMapping("/{username}")
     public ResponseEntity<UserResponse> getUserByUsername(@PathVariable @NotBlank String username) {
         User user = userService.findByUsername(username);
@@ -31,6 +39,9 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "Create user", description = "Creates a new user (Admin only)")
+    @ApiResponse(responseCode = "201", description = "User created successfully")
+    @ApiResponse(responseCode = "400", description = "Invalid input")
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> createUser(@RequestBody @Valid CreateUserRequest request) {

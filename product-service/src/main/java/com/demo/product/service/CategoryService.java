@@ -7,11 +7,13 @@ import com.demo.product.dto.CategoryDTO;
 import com.demo.product.repository.CategorySpecifications;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 public class CategoryService {
 
@@ -23,11 +25,18 @@ public class CategoryService {
 
     @Transactional
     public CategoryDTO create(CategoryDTO in) {
-        return CategoryMapper.toDto(repo.save(new Category(in.name())));
+        log.info("Creating category: name={}", in.name());
+        CategoryDTO saved = CategoryMapper.toDto(repo.save(new Category(in.name())));
+        log.info("Category created: id={}", saved.id());
+        return saved;
     }
 
     public CategoryDTO find(Long id) {
-        var category = repo.findById(id).orElseThrow(() -> new EntityNotFoundException("Category with id %d not found".formatted(id)));
+        log.debug("Finding category by id: {}", id);
+        var category = repo.findById(id).orElseThrow(() -> {
+            log.error("Category not found: id={}", id);
+            return new EntityNotFoundException("Category with id %d not found".formatted(id));
+        });
         return CategoryMapper.toDto(category);
     }
 
@@ -40,16 +49,24 @@ public class CategoryService {
 
     @Transactional
     public CategoryDTO update(Long id, CategoryDTO in) {
-        var category = repo.findById(id).orElseThrow(() -> new EntityNotFoundException("Category %d introuvable".formatted(id)));
+        log.info("Updating category: id={}", id);
+        var category = repo.findById(id).orElseThrow(() -> {
+            log.error("Category not found for update: id={}", id);
+            return new EntityNotFoundException("Category %d introuvable".formatted(id));
+        });
         category.setName(in.name());
+        log.info("Category updated: id={}", id);
         return CategoryMapper.toDto(repo.save(category));
     }
 
     @Transactional
     public void delete(Long id) {
-        if (!repo.existsById(id))  {
+        log.info("Deleting category: id={}", id);
+        if (!repo.existsById(id)) {
+            log.error("Category not found for deletion: id={}", id);
             throw new EntityNotFoundException("Category %d not found".formatted(id));
         }
         repo.deleteById(id);
+        log.info("Category deleted: id={}", id);
     }
 }

@@ -14,9 +14,14 @@ import org.springframework.http.*;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+
 @Validated
 @RestController
 @RequestMapping("/api/categories")
+@Tag(name = "Category Management", description = "Endpoints for managing categories")
 public class CategoryController {
 
     private final CategoryService service;
@@ -25,16 +30,23 @@ public class CategoryController {
         this.service = service;
     }
 
+    @Operation(summary = "Create category", description = "Creates a new product category")
+    @ApiResponse(responseCode = "201", description = "Category created successfully")
     @PostMapping
     public ResponseEntity<CategoryDTO> create(@Valid @RequestBody CategoryDTO in) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.create(in));
     }
 
+    @Operation(summary = "Get category by ID", description = "Retrieves a category by its unique identifier")
+    @ApiResponse(responseCode = "200", description = "Category found")
+    @ApiResponse(responseCode = "404", description = "Category not found")
     @GetMapping("/{id}")
     public ResponseEntity<CategoryDTO> get(@PathVariable Long id) {
         return ResponseEntity.ok(service.find(id));
     }
 
+    @Operation(summary = "List categories", description = "Retrieves a paginated list of categories with optional filtering")
+    @ApiResponse(responseCode = "200", description = "List of categories")
     @GetMapping
     public ResponseEntity<Page<CategoryDTO>> list(
             @RequestParam(defaultValue = "0") @Min(0) int page,
@@ -51,11 +63,16 @@ public class CategoryController {
         return ResponseEntity.ok(service.search(id, name, pageable));
     }
 
+    @Operation(summary = "Update category", description = "Updates an existing category")
+    @ApiResponse(responseCode = "200", description = "Category updated successfully")
+    @ApiResponse(responseCode = "404", description = "Category not found")
     @PutMapping("/{id}")
     public ResponseEntity<CategoryDTO> update(@PathVariable Long id, @Valid @RequestBody CategoryDTO in) {
         return ResponseEntity.ok(service.update(id, in));
     }
 
+    @Operation(summary = "Delete category", description = "Deletes a category by ID")
+    @ApiResponse(responseCode = "204", description = "Category deleted successfully")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {
