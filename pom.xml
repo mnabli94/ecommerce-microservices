@@ -82,5 +82,6 @@
         <module>order-service</module>
         <module>kafka-utils</module>
         <module>security-utils</module>
+        <module>config-server</module>
     </modules>
 </project>

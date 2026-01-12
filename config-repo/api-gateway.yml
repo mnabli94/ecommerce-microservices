@@ -1,0 +1,100 @@
+server:
+  port: 4000
+
+management:
+  endpoints:
+    web:
+      base-path: /gateway-actuator
+      exposure:
+        include: health,info,metrics,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://zipkin:9411/api/v2/spans
+
+spring:
+  application:
+    name: api-gateway
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${AUTH_SERVICE_URL:http://localhost:8080}/.well-known/jwks.json
+  cloud:
+    gateway:
+      routes:
+        - id: auth-service
+          uri: http://auth-service:8080
+          predicates:
+            - Path=/api/auth/**,/api/user/**
+
+        - id: product-service
+          uri: http://product-service:8081
+          predicates:
+            - Path=/api/products/**,/api/categories/**
+
+        - id: order-service
+          uri: http://order-service:8082
+          predicates:
+            - Path=/api/orders/**
+
+        - id: order-actuator
+          uri: http://order-service:8082
+          predicates:
+            - Path=/actuator/order/**
+          filters:
+            - RewritePath=/actuator/order/(?<segment>.*), /actuator/${segment}
+
+        - id: product-actuator
+          uri: http://product-service:8081
+          predicates:
+            - Path=/actuator/product/**
+          filters:
+            - RewritePath=/actuator/product/(?<segment>.*), /actuator/${segment}
+
+        - id: auth-actuator
+          uri: http://auth-service:8080
+          predicates:
+            - Path=/actuator/auth/**
+          filters:
+            - RewritePath=/actuator/auth/(?<segment>.*), /actuator/${segment}
+
+        - id: auth-docs
+          uri: http://auth-service:8080
+          predicates:
+            - Path=/v3/api-docs/auth-service
+          filters:
+            - RewritePath=/v3/api-docs/auth-service, /v3/api-docs
+
+        - id: product-docs
+          uri: http://product-service:8081
+          predicates:
+            - Path=/v3/api-docs/product-service
+          filters:
+            - RewritePath=/v3/api-docs/product-service, /v3/api-docs
+
+        - id: order-docs
+          uri: http://order-service:8082
+          predicates:
+            - Path=/v3/api-docs/order-service
+          filters:
+            - RewritePath=/v3/api-docs/order-service, /v3/api-docs
+
+springdoc:
+  swagger-ui:
+    urls:
+      - name: auth-service
+        url: /v3/api-docs/auth-service
+      - name: product-service
+        url: /v3/api-docs/product-service
+      - name: order-service
+        url: /v3/api-docs/order-service
+
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"

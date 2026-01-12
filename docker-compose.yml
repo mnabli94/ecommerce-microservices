@@ -53,12 +53,36 @@ services:
     networks:
       - app-network
 
+  config-server:
+    container_name: config-server
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      args:
+        SERVICE: config-server
+    ports: [ "8888:8888" ]
+    volumes:
+      - ./config-repo:/config-repo
+    environment:
+      SPRING_PROFILES_ACTIVE: native
+      SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS: file:/config-repo
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8888/actuator/health" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - app-network
+
   api-gateway:
     container_name: api-gateway
     build:
       context: .
       dockerfile: api-gateway/Dockerfile
     ports: [ "4000:4000" ]
+    depends_on:
+      config-server:
+        condition: service_healthy
     environment:
       AUTH_SERVICE_URL: http://auth-service:8080
     networks:
@@ -73,6 +97,8 @@ services:
         SERVICE: auth-service
     depends_on:
       user-db:
+        condition: service_healthy
+      config-server:
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: postgres
@@ -96,6 +122,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_started
+      config-server:
+        condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: postgres
       SPRING_DATASOURCE_URL: jdbc:postgresql://product-db:5432/productsdb
@@ -121,6 +149,8 @@ services:
 #        condition: service_started
       kafka:
         condition: service_started
+      config-server:
+        condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: postgres
       SPRING_DATASOURCE_URL: jdbc:postgresql://order-db:5432/ordersdb
