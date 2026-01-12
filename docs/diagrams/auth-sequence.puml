@@ -1,0 +1,14 @@
+@startuml
+!theme plain
+skinparam backgroundColor white
+
+actor Client
+participant "Auth Service" as Auth
+database "Users DB" as DB
+
+Client -> Auth : POST /login
+Auth -> DB : findByUsername()
+DB --> Auth : User Entity
+Auth -> Auth : Validate + Generate JWT
+Auth --> Client : 200 OK + Token
+@enduml

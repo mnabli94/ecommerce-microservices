@@ -1,0 +1,27 @@
+@startuml
+!theme plain
+skinparam backgroundColor white
+
+actor "Client" as Client
+component "API Gateway\n:4000" as Gateway #lightblue
+component "Auth Service\n:8080" as Auth #lightyellow
+component "Product Service\n:8081" as Product #lightyellow
+component "Order Service\n:8082" as Order #lightyellow
+database "Users DB" as UDB
+database "Products DB" as PDB
+database "Orders DB" as ODB
+queue "Kafka" as Kafka #lightgreen
+
+Client --> Gateway
+Gateway --> Auth
+Gateway --> Product
+Gateway --> Order
+
+Auth --> UDB
+Product --> PDB
+Order --> ODB
+
+Order --> Product : Check Stock
+Order ..> Kafka : OrderCreated
+Kafka ..> Product : UpdateStock
+@enduml

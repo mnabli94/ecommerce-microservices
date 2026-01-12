@@ -1,0 +1,22 @@
+@startuml
+!theme plain
+skinparam backgroundColor white
+
+actor User
+participant "Order Service" as Order
+participant "Product Service" as Product
+database "Order DB" as DB
+queue Kafka
+
+User -> Order : POST /orders
+Order -> Product : GET /products/{id}
+Product --> Order : Price + Stock
+
+alt In Stock
+    Order -> DB : Save Order
+    Order -> Kafka : Publish OrderCreated
+    Order --> User : 201 Created
+else Out of Stock
+    Order --> User : 400 Bad Request
+end
+@enduml
