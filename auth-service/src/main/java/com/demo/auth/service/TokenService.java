@@ -1,5 +1,6 @@
 package com.demo.auth.service;
 
+import com.demo.auth.exception.TokenCreationException;
 import com.demo.security.KeyProvider;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -19,21 +20,26 @@ import java.util.UUID;
 public class TokenService {
     private final KeyProvider keys;
     private final String issuer;
+    private final String audience;
     private final long accessTtl;
 
-    public TokenService(KeyProvider keys, @Value("${auth.issuer}") String issuer, @Value("${auth.access-ttl-seconds}") long accessTtl) {
+    public TokenService(KeyProvider keys,
+            @Value("${auth.issuer}") String issuer,
+            @Value("${security.auth-audience:ecommerce-api}") String audience,
+            @Value("${auth.access-ttl-seconds}") long accessTtl) {
         this.keys = keys;
         this.issuer = issuer;
+        this.audience = audience;
         this.accessTtl = accessTtl;
     }
 
-    public String createAccessToken(String subject, List<String> roles, List<String> scopes) throws JOSEException {
+    public String createAccessToken(String subject, List<String> roles, List<String> scopes) {
         Instant now = Instant.now();
 
         JWTClaimsSet claims = new JWTClaimsSet.Builder()
                 .issuer(issuer)
                 .subject(subject)
-                .audience("ecommerce-api")
+                .audience(audience)
                 .issueTime(Date.from(now))
                 .expirationTime(Date.from(now.plusSeconds(accessTtl)))
                 .claim("scope", String.join(" ", scopes))
@@ -45,8 +51,12 @@ public class TokenService {
                 .keyID(keys.getRsaKey().getKeyID())
                 .build();
 
-        SignedJWT signedJWT = new SignedJWT(jwsHeader, claims);
-        signedJWT.sign(new RSASSASigner(keys.getRsaKey().toPrivateKey()));
-        return signedJWT.serialize();
+        try {
+            SignedJWT signedJWT = new SignedJWT(jwsHeader, claims);
+            signedJWT.sign(new RSASSASigner(keys.getRsaKey().toPrivateKey()));
+            return signedJWT.serialize();
+        } catch (JOSEException e) {
+            throw new TokenCreationException("Failed to sign JWT", e);
+        }
     }
 }

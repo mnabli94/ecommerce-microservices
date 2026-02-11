@@ -1,13 +1,11 @@
 package com.demo.auth.service;
 
-import com.demo.auth.dto.LoginRequest;
-import com.demo.auth.dto.RefreshRequest;
-import com.demo.auth.dto.RevokeRequest;
-import com.demo.auth.dto.TokenResponse;
+import com.demo.auth.config.MetricsConfig;
+import com.demo.auth.dto.*;
 import com.demo.auth.entity.RefreshToken;
-import com.nimbusds.jose.JOSEException;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -16,40 +14,76 @@ public class AuthService {
     private final UserService userService;
     private final TokenService tokenService;
     private final RefreshService refreshService;
+    private final MetricsConfig.AuthMetrics metrics;
+    private final String tokenType;
+    private final long accessTtl;
 
-    public AuthService(UserService userService, TokenService tokenService, RefreshService refreshService) {
+    public AuthService(UserService userService,
+            TokenService tokenService,
+            RefreshService refreshService,
+            MetricsConfig.AuthMetrics metrics,
+            @Value("${auth.token-type:Bearer}") String tokenType,
+            @Value("${auth.access-ttl-seconds}") long accessTtl) {
         this.userService = userService;
         this.tokenService = tokenService;
         this.refreshService = refreshService;
+        this.metrics = metrics;
+        this.tokenType = tokenType;
+        this.accessTtl = accessTtl;
     }
 
-    public TokenResponse login(LoginRequest request) throws JOSEException {
-        log.info("Login attempt for user: {}", request.username());
-        var user = userService.authenticate(request.username(), request.password());
-        log.debug("User authenticated successfully: {}", user.getUsername());
+    public TokenResponse login(LoginRequest request) throws Exception {
+        return metrics.getLoginTimer().recordCallable(() -> {
+            log.info("Login attempt for user: {}", request.username());
+            try {
+                var user = userService.authenticate(request.username(), request.password());
+                var session = userService.prepareSession(user.getUsername());
 
-        var accessToken = tokenService.createAccessToken(
-                user.getUsername(),
-                userService.rolesByUsername(user.getUsername()),
-                userService.scopesByUsername(user.getUsername()));
-        var refreshToken = refreshService.issue(user.getUsername(), "client-web");
-        log.info("Login successful for user: {}", request.username());
-        return new TokenResponse(accessToken, refreshToken.getId(), "Bearer", 300);
+                var accessToken = tokenService.createAccessToken(
+                        session.username(),
+                        session.roles(),
+                        session.scopes());
+                var refreshToken = refreshService.issue(user, "client-web");
+
+                metrics.getLoginSuccessCounter().increment();
+                log.info("Login successful for user: {}", request.username());
+                return new TokenResponse(accessToken, refreshToken.getId(), tokenType, accessTtl);
+
+            } catch (Exception e) {
+                metrics.getLoginFailureCounter().increment();
+                if (e.getMessage() != null && e.getMessage().contains("locked")) {
+                    metrics.getLoginBruteForceCounter().increment();
+                }
+                throw e;
+            }
+        });
     }
 
-    public TokenResponse refresh(RefreshRequest request) throws JOSEException {
+    public TokenResponse refresh(RefreshRequest request) {
         log.debug("Token refresh requested");
         RefreshToken next = refreshService.rotate(request.refreshToken());
-        String subject = refreshService.getSubject(next.getId());
-        String access = tokenService.createAccessToken(subject, userService.rolesByUsername(subject),
-                userService.scopesByUsername(subject));
-        log.info("Token refreshed for user: {}", subject);
-        return new TokenResponse(access, next.getId(), "Bearer", 300);
+        var session = userService.prepareSession(next.getUser().getUsername());
+
+        String access = tokenService.createAccessToken(
+                session.username(),
+                session.roles(),
+                session.scopes());
+
+        metrics.getTokenRefreshCounter().increment();
+        log.info("Token refreshed for user: {}", session.username());
+        return new TokenResponse(access, next.getId(), tokenType, accessTtl);
     }
 
-    public void revokeCascade(@Valid RevokeRequest revokeRequest) {
-        log.info("Revoking refresh token cascade");
-        refreshService.revokeCascade(revokeRequest.refreshToken());
-        log.debug("Refresh token cascade revoked successfully");
+    public void revokeToken(@Valid RevokeRequest revokeRequest) {
+        log.info("Revoking specific refresh token: {}", revokeRequest.refreshToken());
+        refreshService.revokeToken(revokeRequest.refreshToken());
+        metrics.getTokenRevokeCounter().increment();
+        log.debug("Refresh token revoked successfully");
+    }
+
+    public void logoutEverywhere(String username) {
+        log.info("Logging out user from all devices: {}", username);
+        var user = userService.findByUsername(username);
+        refreshService.revokeAllByUser(user);
     }
 }

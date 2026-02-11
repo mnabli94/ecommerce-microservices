@@ -1,7 +1,12 @@
 package com.demo.auth.dto;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import java.time.LocalDateTime;
 
-public record UserResponse(String username, String roles) {
+public record UserResponse(
+        String username,
+        String roles,
+        LocalDateTime createAt,
+        LocalDateTime updatedAt,
+        String createdBy,
+        String updatedBy) {
 }

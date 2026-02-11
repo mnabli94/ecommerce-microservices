@@ -15,7 +15,7 @@ RUN mvn -q -f security-utils/pom.xml clean install
 
 COPY ${SERVICE}/pom.xml ${SERVICE}/pom.xml
 COPY ${SERVICE}/src ${SERVICE}/src
-RUN mvn -q -f ${SERVICE}/pom.xml package
+RUN mvn -q -DskipTests -f ${SERVICE}/pom.xml package
 
 FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app

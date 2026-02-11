@@ -6,18 +6,24 @@ import lombok.Data;
 import java.time.Instant;
 
 @Entity
-@Table(name="refresh_tokens")
+@Table(name = "refresh_tokens")
 @Data
 public class RefreshToken {
     @Id
     String id;
-    @Column(nullable=false)
-    String subject;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    User user;
+
     String clientId;
-    @Column(nullable=false)
+
+    @Column(nullable = false)
     Instant expiresAt;
-    @Column(nullable=false)
+
+    @Column(nullable = false)
     Instant createdAt;
+
     boolean revoked = false;
     String replacedBy;
 }

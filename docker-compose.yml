@@ -53,6 +53,31 @@ services:
     networks:
       - app-network
 
+  redis:
+    image: redis:7-alpine
+    container_name: auth-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-demo123}
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD:-demo123}
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --tcp-keepalive 300
+      --timeout 300
+    volumes:
+      - redis_data:/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   config-server:
     container_name: config-server
     build:
@@ -98,6 +123,8 @@ services:
     depends_on:
       user-db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
       config-server:
         condition: service_healthy
     environment:
@@ -107,6 +134,9 @@ services:
       SPRING_DATASOURCE_PASSWORD: demo123
       SERVER_PORT: 8080
       KAFKA_BOOTSTRAP_SERVERS: kafka:9093
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:-demo123}
     networks:
       - app-network
 
@@ -215,7 +245,6 @@ services:
       - KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR=1
       - KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
       - KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR=1
-      - KAFKA_CFG_MIN_INSYNC_REPLICAS=1
       - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
     depends_on:
       - zookeeper
@@ -271,5 +300,6 @@ volumes:
   pgdata_products:
   pgdata_orders:
   pgdata_users:
+  redis_data:
   kafka_data:
   zookeeper_data:
