@@ -5,34 +5,27 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Component
 public class RateLimitingFilter extends OncePerRequestFilter {
 
-    private static class RequestInfo {
-        int count;
-        Instant windowStart;
-
-        RequestInfo() {
-            this.count = 0;
-            this.windowStart = Instant.now();
-        }
-    }
-
-    private final ConcurrentHashMap<String, RequestInfo> requestCounts = new ConcurrentHashMap<>();
+    private final StringRedisTemplate redisTemplate;
 
     private static final int LOGIN_MAX_REQUESTS = 5;
     private static final int GENERAL_MAX_REQUESTS = 10;
-    private static final int WINDOW_MINUTES = 1;
+    private static final long WINDOW_SECONDS = 60;
+
+    public RateLimitingFilter(StringRedisTemplate redisTemplate) {
+        this.redisTemplate = redisTemplate;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -41,33 +34,30 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
         String clientIp = getClientIpAddress(request);
         String path = request.getRequestURI();
-        String key = clientIp + ":" + (path.contains("/token") ? "login" : "general");
+        boolean isLogin = path.contains("/token");
+        String key = "rate_limit:" + clientIp + ":" + (isLogin ? "login" : "general");
 
-        RequestInfo info = requestCounts.computeIfAbsent(key, k -> new RequestInfo());
+        int maxRequests = isLogin ? LOGIN_MAX_REQUESTS : GENERAL_MAX_REQUESTS;
 
-        if (info.windowStart.plus(WINDOW_MINUTES, ChronoUnit.MINUTES).isBefore(Instant.now())) {
-            info.count = 0;
-            info.windowStart = Instant.now();
+        Long currentCount = redisTemplate.opsForValue().increment(key);
+        if (currentCount != null && currentCount == 1) {
+            redisTemplate.expire(key, WINDOW_SECONDS, TimeUnit.SECONDS);
         }
 
-        int maxRequests = key.endsWith("login") ? LOGIN_MAX_REQUESTS : GENERAL_MAX_REQUESTS;
+        if (currentCount != null && currentCount > maxRequests) {
+            Long ttl = redisTemplate.getExpire(key, TimeUnit.SECONDS);
+            long retryAfter = (ttl != null && ttl > 0) ? ttl : WINDOW_SECONDS;
 
-        if (info.count >= maxRequests) {
             log.warn("Rate limit exceeded for IP: {} on path: {}", clientIp, path);
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
             response.setContentType("application/json");
-            response.getWriter().write("""
-                    {
-                        "error": "Too Many Requests",
-                        "message": "Rate limit exceeded. Please try again later.",
-                        "retryAfter": 60
-                    }
-                    """);
-            response.setHeader("Retry-After", "60");
+            response.setHeader("Retry-After", String.valueOf(retryAfter));
+            response.getWriter().write(String.format("""
+                    {"error":"Too Many Requests","message":"Rate limit exceeded. Please try again later.","retryAfter":%d}
+                    """, retryAfter));
             return;
         }
 
-        info.count++;
         filterChain.doFilter(request, response);
     }
 
