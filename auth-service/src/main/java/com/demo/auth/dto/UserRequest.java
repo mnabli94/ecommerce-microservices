@@ -13,7 +13,7 @@ public record UserRequest(
     String username,
 
     @NotBlank(groups = Create.class, message = "Password is required for new users")
-    @Size(min = 6, message = "Password must be at least 6 characters")
+    @Size(min = 8, message = "Password must be at least 8 characters")
     String password,
 
     @NotEmpty(groups = Create.class, message = "At least one role is required")

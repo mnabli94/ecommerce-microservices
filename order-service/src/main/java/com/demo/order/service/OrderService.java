@@ -22,6 +22,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
@@ -64,6 +67,7 @@ public class OrderService {
                 .toList();
         Order order = orderMapper.toEntity(dto);
         order.setOrderItems(mergedOrderItems);
+        order.setUserId(currentUsername());
         order.setCreatedAt(OffsetDateTime.now());
         order.setStatus(OrderStatus.PENDING);
 
@@ -85,7 +89,7 @@ public class OrderService {
 
         var evt = new OrderCreatedEvent(
                 saved.getId(),
-                UUID.randomUUID(), // TODO user id
+                UUID.randomUUID(), // placeholder — event contract requires UUID, JWT only has username
                 saved.getTotalAmount(),
                 saved.getCreatedAt(),
                 saved.getOrderItems().stream()
@@ -159,13 +163,21 @@ public class OrderService {
         var evt = new OrderConfirmedEvent(
                 saved.getId(),
                 saved.getId(),
-                UUID.randomUUID().toString(), // TODO payment id
+                UUID.randomUUID().toString(), // placeholder — payment integration pending
                 saved.getCreatedAt());
 
         eventPublisher.publish(OrderTopics.ORDER_CONFIRMED, evt);
         log.debug("OrderConfirmedEvent published: orderId={}", saved.getId());
 
         return orderMapper.toOutDto(saved);
+    }
+
+    private String currentUsername() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth instanceof JwtAuthenticationToken jat) {
+            return jat.getToken().getSubject();
+        }
+        throw new IllegalStateException("No authenticated user in SecurityContext");
     }
 
     @Transactional

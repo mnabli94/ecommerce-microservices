@@ -13,6 +13,7 @@ import java.util.UUID;
 
 public record OrderOutDTO(
         UUID id,
+        String userId,
         @NotNull(message = "Status cannot be null")
         OrderStatus status,
         @Size(max = 255, message = "Shipping address must be at most 255 characters")
