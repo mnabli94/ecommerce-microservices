@@ -21,13 +21,13 @@ public interface OrderMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "order", ignore = true)
+    @Mapping(target = "productName", ignore = true)
     OrderItem toEntity(OrderItemInDTO dto);
 
     OrderItemInDTO toDto(OrderItem orderItem);
 
     OrderInDTO toDto(Order order);
 
-    @Mapping(target = "product", ignore = true)
     OrderItemOutDTO toOutDto(OrderItem orderItem);
 
     OrderOutDTO toOutDto(Order order);

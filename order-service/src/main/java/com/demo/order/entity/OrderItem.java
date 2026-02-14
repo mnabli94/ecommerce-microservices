@@ -25,14 +25,18 @@ public class OrderItem {
     private String productId;
 
     @Column(nullable = false)
+    private String productName;
+
+    @Column(nullable = false)
     private Integer quantity;
 
     @Column(nullable = false)
     private BigDecimal unitPrice;
 
-    public OrderItem(Order order, String productId, int quantity, BigDecimal unitPrice) {
+    public OrderItem(Order order, String productId, String productName, int quantity, BigDecimal unitPrice) {
         this.order = order;
         this.productId = productId;
+        this.productName = productName;
         this.quantity = quantity;
         this.unitPrice = unitPrice;
     }

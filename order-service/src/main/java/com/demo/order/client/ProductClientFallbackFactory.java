@@ -1,10 +1,10 @@
 package com.demo.order.client;
 
 import com.demo.order.dto.out.ProductDTO;
+import com.demo.order.exception.ProductServiceUnavailableException;
 import feign.FeignException;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.micrometer.core.instrument.MeterRegistry;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cloud.openfeign.FallbackFactory;
@@ -26,26 +26,25 @@ public class ProductClientFallbackFactory implements FallbackFactory<ProductClie
             @Override
             public ProductDTO getProduct(Long id, String bearer) {
                 String causeType;
-                if (bearer == null) {
-                    logger.warn("No JWT in security context");
-                }
                 if (cause instanceof CallNotPermittedException) {
-                    logger.warn("Circuit breaker is OPEN for product-service : {}", cause.getMessage());
+                    logger.warn("Circuit breaker is OPEN for product-service: {}", cause.getMessage());
                     causeType = "circuit_breaker_open";
                 } else if (cause instanceof FeignException) {
-                    logger.warn("Feign error: {}", cause.getMessage());
+                    logger.warn("Feign error calling product-service: {}", cause.getMessage());
                     causeType = "feign_error";
                 } else {
-                    logger.warn("Unexpected error: {}", cause.getMessage());
+                    logger.warn("Unexpected error calling product-service: {}", cause.getMessage());
                     causeType = "unknown_error";
                 }
-                logger.error("Fallback triggered for product ID {}: {} with cause type {}", id, cause.getMessage(), causeType);
+
                 meterRegistry.counter("product.fallback.invoked",
                         "service", "order-service",
                         "cause", causeType,
                         "product_id", id.toString()
                 ).increment();
-                return new ProductDTO(id, "Fallback Product", null, false, null);
+
+                throw new ProductServiceUnavailableException(
+                        "Product service unavailable for product ID %d: %s".formatted(id, causeType), cause);
             }
         };
     }

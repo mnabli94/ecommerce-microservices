@@ -5,7 +5,6 @@ import com.demo.events.order.OrderTopics;
 import com.demo.kafka.utils.producer.EventPublisher;
 import com.demo.order.dto.in.OrderInDTO;
 import com.demo.order.dto.in.OrderItemInDTO;
-import com.demo.order.dto.out.OrderItemOutDTO;
 import com.demo.order.dto.out.OrderOutDTO;
 import com.demo.order.dto.out.ProductDTO;
 import com.demo.order.entity.Order;
@@ -27,7 +26,6 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -97,14 +95,14 @@ public class OrderService {
 
         eventPublisher.publish(OrderTopics.ORDER_CREATED, evt);
         log.debug("OrderCreatedEvent published: orderId={}", saved.getId());
-        return getOrderOutDTOWithProductDetails(saved);
+        return orderMapper.toOutDto(saved);
     }
 
     public OrderOutDTO find(UUID id) {
         log.debug("Finding order by id: {}", id);
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Order not found with id: %s".formatted(id)));
-        return getOrderOutDTOWithProductDetails(order);
+        return orderMapper.toOutDto(order);
     }
 
     public Page<OrderOutDTO> findAll(OrderStatus status, BigDecimal minAmount, OffsetDateTime from, OffsetDateTime to,
@@ -114,7 +112,7 @@ public class OrderService {
                 .and(OrderSpecifications.minAmount(minAmount))
                 .and(OrderSpecifications.createdBetween(from, to));
         return orderRepository.findAll(spec, pageable)
-                .map(this::getOrderOutDTOWithProductDetails);
+                .map(orderMapper::toOutDto);
     }
 
     private void setUpProduct(OrderItem item) {
@@ -122,25 +120,26 @@ public class OrderService {
         ProductDTO product = productCaller.getProduct(Long.parseLong(productId));
         validateProduct(productId, product);
         item.setUnitPrice(product.price());
+        item.setProductName(product.name());
     }
 
     private void validateProduct(String productId, ProductDTO product) {
-        if (product == null || "Fallback Product".equals(product.name())) {
+        if (product == null) {
             meterRegistry.counter("order.validation_failed", "service", "order-service").increment();
-            log.error("Product not found or unavailable: {}", productId);
-            throw new EntityNotFoundException("Product not found or unavailable: " + productId);
+            log.error("Product not found: {}", productId);
+            throw new EntityNotFoundException("Product not found: " + productId);
         }
 
         if (!product.inStock()) {
             meterRegistry.counter("order.validation_failed", "service", "order-service").increment();
             log.error("Product not available: {}", productId);
-            throw new RuntimeException("Product not available: " + productId);
+            throw new IllegalStateException("Product not available: " + productId);
         }
 
         if (product.price() == null) {
             meterRegistry.counter("order.validation_failed", "service", "order-service").increment();
             log.error("Product price missing: {}", product);
-            throw new RuntimeException("Product price missing: " + productId);
+            throw new IllegalStateException("Product price missing: " + productId);
         }
     }
 
@@ -166,7 +165,7 @@ public class OrderService {
         eventPublisher.publish(OrderTopics.ORDER_CONFIRMED, evt);
         log.debug("OrderConfirmedEvent published: orderId={}", saved.getId());
 
-        return getOrderOutDTOWithProductDetails(saved);
+        return orderMapper.toOutDto(saved);
     }
 
     @Transactional
@@ -181,26 +180,8 @@ public class OrderService {
         var saved = orderRepository.save(order);
         log.info("Order cancelled: id={}", id);
         meterRegistry.counter("order.cancelled", "service", "order-service").increment();
-        return getOrderOutDTOWithProductDetails(saved);
+        return orderMapper.toOutDto(saved);
     }
 
-    private OrderOutDTO getOrderOutDTOWithProductDetails(Order saved) {
-        OrderOutDTO result = orderMapper.toOutDto(saved);
-        List<ProductDTO> products = saved.getOrderItems()
-                .stream()
-                .map(item -> productCaller.getProduct(Long.parseLong(item.getProductId()))).toList();
-
-        var finalOrderItems = saved.getOrderItems().stream().map(item -> {
-            var pid = Long.valueOf(item.getProductId());
-            var product = products.stream()
-                    .filter(productDTO -> Objects.equals(productDTO.id(), pid))
-                    .findFirst().orElseThrow(() -> new RuntimeException("product with id=%d is not more available"));
-            var itemDto = orderMapper.toOutDto(item);
-            return new OrderItemOutDTO(itemDto.id(), product, itemDto.quantity(), itemDto.unitPrice());
-        }).toList();
-
-        return new OrderOutDTO(result.id(), result.status(), result.shippingAddress(), finalOrderItems,
-                result.totalAmount(), result.createdAt());
-    }
 
 }
