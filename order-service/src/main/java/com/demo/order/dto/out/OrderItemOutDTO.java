@@ -1,6 +1,5 @@
 package com.demo.order.dto.out;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
@@ -8,9 +7,10 @@ import java.util.UUID;
 
 public record OrderItemOutDTO(
         UUID id,
-//        @NotNull(message = "Product cannot be null")
-        @JsonProperty(value = "productDetails")
-        ProductDTO product,
+        @NotBlank(message = "Product ID cannot be empty")
+        String productId,
+        @NotBlank(message = "Product name cannot be empty")
+        String productName,
         @NotNull(message = "Quantity cannot be null")
         @Positive(message = "Quantity must be positive")
         Integer quantity,

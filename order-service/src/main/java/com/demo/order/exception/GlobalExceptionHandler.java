@@ -42,6 +42,12 @@ public class GlobalExceptionHandler {
                 .body(new ApiError("NOT_VALID", "Validation failed for one or more fields", fieldErrors));
     }
 
+    @ExceptionHandler(ProductServiceUnavailableException.class)
+    public ResponseEntity<ApiError> productServiceUnavailable(ProductServiceUnavailableException e) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(new ApiError("SERVICE_UNAVAILABLE", e.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> other(Exception e){
         return ResponseEntity.internalServerError().body(new ApiError("INTERNAL_ERROR", e.getMessage()));
