@@ -49,7 +49,6 @@ public class ProductController {
     @GetMapping("/{id}")
     public ResponseEntity<ProductDTO> get(@NotNull @PathVariable Long id) {
         logger.info("call /api/products/{}", id);
-        // return ResponseEntity.status(503).build(); //TODO for test purposes
         return ResponseEntity.ok(service.find(id));
     }
 

@@ -20,6 +20,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
@@ -59,10 +60,6 @@ public class ProductService {
         }
 
         private void onOrderCreated(OrderCreatedEvent event) {
-                // if (event.items().stream().mapToInt(OrderCreatedEvent.Item::quantity).sum() >
-                // 10) {
-                // throw new RuntimeException("Too much quantity");
-                // }
                 logger.info("OrderCreated -  event = {}", event);
                 meterRegistry.counter("order.event.consumed", "service", "order-service", "event", "order-created")
                                 .increment();
@@ -71,15 +68,13 @@ public class ProductService {
         }
 
         private void onOrderConfirmed(OrderConfirmedEvent event) {
-                // if (event.totalAmount().compareTo(BigDecimal.valueOf(1000)) > 0) {
-                // throw new RuntimeException("Too much total amunt");
-                // }
-                logger.info("onOrderCreated event = payload ={}", event);
+                logger.info("onOrderConfirmed event = payload ={}", event);
                 meterRegistry.counter("order.event.consumed", "service", "order-service", "event", "order-confirmed")
                                 .increment();
                 logger.info("Received OrderConfirmed: key={}, createdAt={}", event.key(), event.occurredAt());
         }
 
+        @Transactional
         public ProductDTO create(ProductDTO dto) {
                 logger.info("Creating product: name={}, categoryId={}", dto.name(), dto.categoryId());
                 Category category = categoryRepository.findById(dto.categoryId())
@@ -105,6 +100,7 @@ public class ProductService {
                 return ProductMapper.toDto(product);
         }
 
+        @Transactional
         public ProductDTO update(Long id, ProductDTO dto) {
                 logger.info("Updating product: id={}", id);
                 Product product = productRepository.findById(id)
@@ -130,6 +126,7 @@ public class ProductService {
                 return ProductMapper.toDto(productRepository.save(product));
         }
 
+        @Transactional
         public void delete(Long id) {
                 logger.info("Deleting product: id={}", id);
                 if (!productRepository.existsById(id)) {

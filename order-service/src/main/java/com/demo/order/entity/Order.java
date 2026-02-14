@@ -24,6 +24,9 @@ public class Order {
     @Column(nullable = false, updatable = false)
     private UUID id;
 
+    @Column(name = "user_id", length = 50)
+    private String userId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private OrderStatus status;
