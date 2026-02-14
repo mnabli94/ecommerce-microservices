@@ -4,13 +4,13 @@ services:
     container_name: product-db
     environment:
       POSTGRES_DB: productsdb
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${PRODUCT_DB_USER}
+      POSTGRES_PASSWORD: ${PRODUCT_DB_PASSWORD}
     ports: [ "5433:5432" ]
     volumes:
       - pgdata_products:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d productsdb" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${PRODUCT_DB_USER} -d productsdb" ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -22,13 +22,13 @@ services:
     container_name: order-db
     environment:
       POSTGRES_DB: ordersdb
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${ORDER_DB_USER}
+      POSTGRES_PASSWORD: ${ORDER_DB_PASSWORD}
     ports: [ "5434:5432" ]
     volumes:
       - pgdata_orders:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ordersdb" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${ORDER_DB_USER} -d ordersdb" ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -40,13 +40,13 @@ services:
     container_name: user-db
     environment:
       POSTGRES_DB: usersdb
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${USER_DB_USER}
+      POSTGRES_PASSWORD: ${USER_DB_PASSWORD}
     ports: [ "5435:5432" ]
     volumes:
       - pgdata_users:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d usersdb" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${USER_DB_USER} -d usersdb" ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -130,8 +130,8 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: postgres
       SPRING_DATASOURCE_URL: jdbc:postgresql://user-db:5432/usersdb
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATASOURCE_USERNAME: ${USER_DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${USER_DB_PASSWORD}
       SERVER_PORT: 8080
       KAFKA_BOOTSTRAP_SERVERS: kafka:9093
       SPRING_DATA_REDIS_HOST: redis
@@ -157,8 +157,8 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: postgres
       SPRING_DATASOURCE_URL: jdbc:postgresql://product-db:5432/productsdb
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATASOURCE_USERNAME: ${PRODUCT_DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${PRODUCT_DB_PASSWORD}
       SERVER_PORT: 8081
       AUTH_SERVICE_URL: http://auth-service:8080
       KAFKA_BOOTSTRAP_SERVERS: kafka:9093
@@ -184,8 +184,8 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: postgres
       SPRING_DATASOURCE_URL: jdbc:postgresql://order-db:5432/ordersdb
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATASOURCE_USERNAME: ${ORDER_DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${ORDER_DB_PASSWORD}
       SERVER_PORT: 8082
       PRODUCT_SERVICE_URL: http://product-service:8081
       AUTH_SERVICE_URL: http://auth-service:8080
