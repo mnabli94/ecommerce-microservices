@@ -6,8 +6,10 @@ import com.demo.events.order.OrderTopics;
 import com.demo.kafka.utils.EventConsumer;
 import com.demo.product.mapper.ProductMapper;
 import com.demo.product.entity.Category;
+import com.demo.product.entity.ProcessedEvent;
 import com.demo.product.entity.Product;
 import com.demo.product.repository.CategoryRepository;
+import com.demo.product.repository.ProcessedEventRepository;
 import com.demo.product.repository.ProductRepository;
 import com.demo.product.dto.ProductDTO;
 import com.demo.product.repository.ProductSpecifications;
@@ -23,6 +25,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.util.UUID;
 
 @Service
 public class ProductService {
@@ -30,15 +34,18 @@ public class ProductService {
         private static final Logger logger = LoggerFactory.getLogger(ProductService.class);
         private final ProductRepository productRepository;
         private final CategoryRepository categoryRepository;
+        private final ProcessedEventRepository processedEventRepository;
         private final EventConsumer<OrderConfirmedEvent> orderConfirmedEventConsumer;
         private final EventConsumer<OrderCreatedEvent> orderCreatedEventConsumer;
         private final MeterRegistry meterRegistry;
 
         public ProductService(ProductRepository productRepository, CategoryRepository categoryRepository,
+                        ProcessedEventRepository processedEventRepository,
                         EventConsumer<OrderConfirmedEvent> orderConfirmedEventConsumer,
                         EventConsumer<OrderCreatedEvent> orderCreatedEventConsumer, MeterRegistry meterRegistry) {
                 this.productRepository = productRepository;
                 this.categoryRepository = categoryRepository;
+                this.processedEventRepository = processedEventRepository;
                 this.orderConfirmedEventConsumer = orderConfirmedEventConsumer;
                 this.orderCreatedEventConsumer = orderCreatedEventConsumer;
                 this.meterRegistry = meterRegistry;
@@ -60,18 +67,38 @@ public class ProductService {
         }
 
         private void onOrderCreated(OrderCreatedEvent event) {
-                logger.info("OrderCreated -  event = {}", event);
-                meterRegistry.counter("order.event.consumed", "service", "order-service", "event", "order-created")
-                                .increment();
-                logger.info("Received OrderCreated: key={}, total={}, .occurredAt={}", event.key(), event.totalAmount(),
+                if (isDuplicate(event.eventId(), "OrderCreatedEvent")) {
+                        return;
+                }
+                logger.info("Received OrderCreated: key={}, total={}, occurredAt={}", event.key(), event.totalAmount(),
                                 event.occurredAt());
+                meterRegistry.counter("order.event.consumed", "service", "product-service", "event", "order-created")
+                                .increment();
+                markProcessed(event.eventId(), "OrderCreatedEvent");
         }
 
         private void onOrderConfirmed(OrderConfirmedEvent event) {
-                logger.info("onOrderConfirmed event = payload ={}", event);
-                meterRegistry.counter("order.event.consumed", "service", "order-service", "event", "order-confirmed")
-                                .increment();
+                if (isDuplicate(event.eventId(), "OrderConfirmedEvent")) {
+                        return;
+                }
                 logger.info("Received OrderConfirmed: key={}, createdAt={}", event.key(), event.occurredAt());
+                meterRegistry.counter("order.event.consumed", "service", "product-service", "event", "order-confirmed")
+                                .increment();
+                markProcessed(event.eventId(), "OrderConfirmedEvent");
+        }
+
+        private boolean isDuplicate(UUID eventId, String eventType) {
+                if (processedEventRepository.existsById(eventId)) {
+                        logger.warn("Duplicate event skipped: eventId={}, type={}", eventId, eventType);
+                        meterRegistry.counter("order.event.duplicate", "service", "product-service", "event", eventType)
+                                        .increment();
+                        return true;
+                }
+                return false;
+        }
+
+        private void markProcessed(UUID eventId, String eventType) {
+                processedEventRepository.save(new ProcessedEvent(eventId, eventType, OffsetDateTime.now()));
         }
 
         @Transactional
