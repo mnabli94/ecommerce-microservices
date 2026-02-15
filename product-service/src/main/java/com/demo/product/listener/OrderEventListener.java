@@ -64,4 +64,14 @@ public class OrderEventListener {
     private void markProcessed(UUID eventId, String eventType) {
         processedEventRepository.save(new ProcessedEvent(eventId, eventType, OffsetDateTime.now()));
     }
+
+    @KafkaListener(topics = "order.created.dlq", groupId = "product-service-dlq")
+    public void onOrderCreatedDlq(OrderCreatedEvent event) {
+        logger.error("DLQ event received from order.created.dlq: {}", event);
+    }
+
+    @KafkaListener(topics = "order.confirmed.dlq", groupId = "product-service-dlq")
+    public void onOrderConfirmedDlq(OrderConfirmedEvent event) {
+        logger.error("DLQ event received from order.confirmed.dlq: {}", event);
+    }
 }
