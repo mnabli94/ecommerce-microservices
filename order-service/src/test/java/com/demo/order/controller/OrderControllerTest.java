@@ -26,7 +26,7 @@ class OrderControllerTest {
     @WithMockUser(roles = "USER")
     void getOrder_withValidToken_shouldReturnOk() throws Exception {
         UUID id = UUID.randomUUID();
-        OrderOutDTO order = new OrderOutDTO(id, null, null, null, null, null);
+        OrderOutDTO order = new OrderOutDTO(id, null, null, null, null, null, null);
         when(orderService.find(id)).thenReturn(order);
         mockMvc.perform(get("/api/orders/%s".formatted(id))).andExpect(status().isOk());
     }
