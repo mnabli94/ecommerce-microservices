@@ -6,25 +6,18 @@ import com.demo.auth.entity.UserRole;
 import com.demo.auth.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
-import org.springframework.data.auditing.AuditingHandler;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
 import java.util.Set;
 import java.util.function.BiFunction;
 
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -40,25 +33,30 @@ class UserControllerTest {
     @MockBean
     UserService userService;
 
+    @MockBean
+    StringRedisTemplate redisTemplate;
+
     static final BiFunction<String, Integer, String> MIN_SIZE_MSG = "minimal %s size is %d"::formatted;
+
     @Test
     void addUser_shouldReturnSuccess() throws Exception {
         UserRequest request = new UserRequest("USERNAME", "PASSWORD", Set.of(UserRole.USER));
         given(userService.createUser(request)).willReturn(toUserEntity(request));
         mockMvc.perform(post("/api/user")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(asJsonString(request)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(request)))
                 .andExpect(header().string("Location", "http://localhost/api/user/USERNAME"))
                 .andExpect(status().isCreated());
     }
 
     @Test
     void addUser_shouldReturnNotValidPayload_whenValidationFails() throws Exception {
-        UserRequest request = new UserRequest("A", "PASS", Set.of()); // Username trop court, password trop court, pas de rôles
+        UserRequest request = new UserRequest("A", "PASS", Set.of()); // Username trop court, password trop court, pas
+                                                                      // de rôles
         // Validation fails before reaching service, so no mock needed
         mockMvc.perform(post("/api/user")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(asJsonString(request)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("error").value("NOT_VALID"))
                 .andExpect(jsonPath("timestamp").exists());
@@ -69,8 +67,8 @@ class UserControllerTest {
         UserRequest req = new UserRequest("AZE", "PASSWORD", Set.of()); // password OK, but no roles
 
         mockMvc.perform(post("/api/user")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(asJsonString(req)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(req)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("NOT_VALID"));
 
