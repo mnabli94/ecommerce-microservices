@@ -26,6 +26,7 @@ public class EventPublisher {
             var message = MessageBuilder.withPayload(event)
                     .setHeader(KafkaHeaders.TOPIC, topic)
                     .setHeader(KafkaHeaders.KEY, event.key())
+                    .setHeader(KafkaHeadersConst.EVENT_ID, event.eventId().toString())
                     .setHeader(KafkaHeadersConst.EVENT_TYPE, event.getClass().getSimpleName())
                     .setHeader(KafkaHeadersConst.OCCURRED_AT, event.occurredAt())
                     .setHeader(KafkaHeadersConst.PRODUCER, producerName)

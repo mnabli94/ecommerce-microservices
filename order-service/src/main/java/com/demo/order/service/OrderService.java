@@ -88,6 +88,7 @@ public class OrderService {
         meterRegistry.counter("order.created", "service", "order-service").increment();
 
         var evt = new OrderCreatedEvent(
+                UUID.randomUUID(),
                 saved.getId(),
                 UUID.randomUUID(), // placeholder — event contract requires UUID, JWT only has username
                 saved.getTotalAmount(),
@@ -161,7 +162,7 @@ public class OrderService {
         meterRegistry.counter("order.confirmed", "service", "order-service").increment();
 
         var evt = new OrderConfirmedEvent(
-                saved.getId(),
+                UUID.randomUUID(),
                 saved.getId(),
                 UUID.randomUUID().toString(), // placeholder — payment integration pending
                 saved.getCreatedAt());
