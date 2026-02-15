@@ -10,7 +10,7 @@ import java.util.UUID;
 public record OrderCreatedEvent(
         UUID eventId,
         UUID orderId,
-        UUID userId,
+        String userId,
         BigDecimal totalAmount,
         OffsetDateTime occurredAt,
         List<Item> items

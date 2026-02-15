@@ -90,7 +90,7 @@ public class OrderService {
         var evt = new OrderCreatedEvent(
                 UUID.randomUUID(),
                 saved.getId(),
-                UUID.randomUUID(), // placeholder — event contract requires UUID, JWT only has username
+                saved.getUserId(),
                 saved.getTotalAmount(),
                 saved.getCreatedAt(),
                 saved.getOrderItems().stream()
@@ -193,6 +193,16 @@ public class OrderService {
         var saved = orderRepository.save(order);
         log.info("Order cancelled: id={}", id);
         meterRegistry.counter("order.cancelled", "service", "order-service").increment();
+
+        var evt = new OrderCancelledEvent(
+                UUID.randomUUID(),
+                saved.getId(),
+                "Cancelled by user",
+                saved.getCreatedAt());
+
+        eventPublisher.publish(OrderTopics.ORDER_CANCELLED, evt);
+        log.debug("OrderCancelledEvent published: orderId={}", saved.getId());
+
         return orderMapper.toOutDto(saved);
     }
 
