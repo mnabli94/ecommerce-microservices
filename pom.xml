@@ -84,6 +84,7 @@
     </build>
 
     <modules>
+        <module>events-api</module>
         <module>api-gateway</module>
         <module>auth-service</module>
         <module>product-service</module>
