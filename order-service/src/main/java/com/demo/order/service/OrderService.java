@@ -164,7 +164,7 @@ public class OrderService {
         var evt = new OrderConfirmedEvent(
                 UUID.randomUUID(),
                 saved.getId(),
-                UUID.randomUUID().toString(), // placeholder — payment integration pending
+                UUID.randomUUID().toString(), //TODO — payment service integration pending
                 saved.getCreatedAt());
 
         eventPublisher.publish(OrderTopics.ORDER_CONFIRMED, evt);

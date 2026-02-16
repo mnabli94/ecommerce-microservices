@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
+import java.util.Set;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -28,6 +29,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 @RequestMapping("/api/products")
 @Tag(name = "Product Management", description = "Endpoints for managing products")
 public class ProductController {
+
+    private static final Set<String> SORTABLE_FIELDS = Set.of("id", "name", "price", "inStock");
 
     private final ProductService service;
     private static final Logger logger = LoggerFactory.getLogger(ProductController.class);
@@ -65,6 +68,9 @@ public class ProductController {
             @RequestParam(required = false) BigDecimal minPrice,
             @RequestParam(required = false) BigDecimal maxPrice) {
 
+        if (!SORTABLE_FIELDS.contains(sortBy)) {
+            throw new IllegalArgumentException("Invalid sort field: " + sortBy + ". Allowed: " + SORTABLE_FIELDS);
+        }
         Sort sort = direction.equalsIgnoreCase("desc")
                 ? Sort.by(sortBy).descending()
                 : Sort.by(sortBy).ascending();

@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.time.OffsetDateTime;
+import java.util.Set;
 import java.util.UUID;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,6 +32,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 @RequestMapping("/api/orders")
 @Tag(name = "Order Management", description = "Endpoints for managing orders")
 public class OrderController {
+    private static final Set<String> SORTABLE_FIELDS = Set.of("id", "userId", "status", "totalAmount", "createdAt", "updatedAt");
+
     private final OrderService orderService;
 
     public OrderController(OrderService orderService) {
@@ -56,6 +59,9 @@ public class OrderController {
             @RequestParam(required = false) BigDecimal minAmount,
             @RequestParam(required = false) OffsetDateTime from,
             @RequestParam(required = false) OffsetDateTime to) {
+        if (!SORTABLE_FIELDS.contains(sortBy)) {
+            throw new IllegalArgumentException("Invalid sort field: " + sortBy + ". Allowed: " + SORTABLE_FIELDS);
+        }
         Sort sort = direction.equalsIgnoreCase("asc")
                 ? Sort.by(sortBy).ascending()
                 : Sort.by(sortBy).descending();
