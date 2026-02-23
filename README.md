@@ -65,6 +65,41 @@ docker-compose up -d --build
 ```
 
 ---
+## Local Development
+
+To run the stack locally without building Docker images.
+
+### PostgreSQL + Kafka (profil `local`)
+
+Runs services against real PostgreSQL databases and Kafka, with Flyway migrations enabled.
+
+**1. Start infrastructure only**
+
+```bash
+docker-compose up user-db order-db product-db redis kafka -d
+```
+
+| Container | Type | Host port |
+|-----------|------|----------|
+| `user-db` | PostgreSQL | `5435` → `usersdb` |
+| `order-db` | PostgreSQL | `5434` → `ordersdb` |
+| `product-db` | PostgreSQL | `5433` → `productsdb` |
+| `redis` | Redis | `6379` |
+| `kafka` | Kafka | `9092` |
+
+**2. Start the config-server**
+
+```bash
+mvn spring-boot:run -pl config-server
+```
+
+**3. Start services with the `local` profile**
+
+```bash
+mvn spring-boot:run -pl auth-service    -Dspring-boot.run.profiles=local
+mvn spring-boot:run -pl product-service -Dspring-boot.run.profiles=local
+mvn spring-boot:run -pl order-service   -Dspring-boot.run.profiles=local
+```
 
 ## Access Points
 

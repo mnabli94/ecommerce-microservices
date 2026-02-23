@@ -5,6 +5,10 @@ ARG SERVICE
 COPY pom.xml ./pom.xml
 RUN mvn -q -DskipTests install -N
 
+COPY events-api/pom.xml  events-api/pom.xml
+COPY events-api/src events-api/src
+RUN mvn -q -f events-api/pom.xml clean install
+
 COPY kafka-utils/pom.xml kafka-utils/pom.xml
 COPY kafka-utils/src kafka-utils/src
 RUN mvn -q -f kafka-utils/pom.xml clean install
