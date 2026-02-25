@@ -26,6 +26,11 @@ public class CategoryService {
     @Transactional
     public CategoryDTO create(CategoryDTO in) {
         log.info("Creating category: name={}", in.name());
+        if (repo.existsByName(in.name())) {
+            var errorMessage = String.format("Product with name %s already exists", in.name());
+            log.error(errorMessage);
+            throw new IllegalArgumentException(errorMessage);
+        }
         CategoryDTO saved = CategoryMapper.toDto(repo.save(new Category(in.name())));
         log.info("Category created: id={}", saved.id());
         return saved;
