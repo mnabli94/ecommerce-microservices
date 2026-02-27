@@ -16,6 +16,7 @@ public class RefreshToken {
     @JoinColumn(name = "user_id", nullable = false)
     User user;
 
+    @Column
     String clientId;
 
     @Column(nullable = false)
@@ -24,6 +25,9 @@ public class RefreshToken {
     @Column(nullable = false)
     Instant createdAt;
 
+    @Column(nullable = false)
     boolean revoked = false;
+
+    @Column
     String replacedBy;
 }

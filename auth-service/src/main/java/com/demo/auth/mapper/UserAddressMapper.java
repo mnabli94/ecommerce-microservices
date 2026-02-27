@@ -5,6 +5,7 @@ import com.demo.auth.dto.UserAddressResponse;
 import com.demo.auth.entity.UserAddress;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 import org.mapstruct.ReportingPolicy;
 
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
@@ -18,4 +19,11 @@ public interface UserAddressMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     UserAddress toUserAddress(UserAddressRequest request);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "user", ignore = true)
+    @Mapping(target = "defaultAddress", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    void update(@MappingTarget UserAddress userAddress, UserAddressRequest request);
 }

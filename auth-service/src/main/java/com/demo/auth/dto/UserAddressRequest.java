@@ -6,7 +6,6 @@ import jakarta.validation.constraints.Size;
 
 public record UserAddressRequest(
 
-        @Size(max = 50)
         UserAddressLabel label,
 
         @NotBlank(message = "First name is required")

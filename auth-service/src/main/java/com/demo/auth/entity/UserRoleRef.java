@@ -23,7 +23,7 @@ public class UserRoleRef {
     private User user;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "role", nullable = false)
+    @Column(nullable = false, length = 20)
     private UserRole role;
 
     public UserRoleRef(User user, UserRole role) {
