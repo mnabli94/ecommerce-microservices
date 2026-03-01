@@ -31,8 +31,9 @@ public class Order {
     @Column(nullable = false, length = 20)
     private OrderStatus status;
 
-    @Column
-    private String shippingAddress;
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "shipping_address_id")
+    private ShippingAddress shippingAddress;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, mappedBy = "order")
     private List<OrderItem> orderItems = new ArrayList<>();

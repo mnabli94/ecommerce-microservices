@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.net.URI;
+import java.security.Principal;
 import java.time.OffsetDateTime;
 import java.util.Set;
 import java.util.UUID;
@@ -72,8 +73,8 @@ public class OrderController {
     @Operation(summary = "Create order", description = "Creates a new order")
     @ApiResponse(responseCode = "201", description = "Order created successfully")
     @PostMapping
-    public ResponseEntity<OrderOutDTO> createOrder(@Valid @RequestBody OrderInDTO dto) {
-        var out = orderService.createOrder(dto);
+    public ResponseEntity<OrderOutDTO> createOrder(@Valid @RequestBody OrderInDTO dto, Principal principal) {
+        var out = orderService.createOrder(dto, principal.getName());
         return ResponseEntity
                 .created(URI.create("/orders" + out.id()))
                 .body(out);
