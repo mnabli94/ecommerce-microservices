@@ -1,11 +1,13 @@
 package com.demo.order.mapper;
 
+import com.demo.order.dto.ShippingAddressDTO;
 import com.demo.order.dto.in.OrderInDTO;
 import com.demo.order.dto.in.OrderItemInDTO;
 import com.demo.order.dto.out.OrderItemOutDTO;
 import com.demo.order.dto.out.OrderOutDTO;
 import com.demo.order.entity.Order;
 import com.demo.order.entity.OrderItem;
+import com.demo.order.entity.ShippingAddress;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
@@ -32,4 +34,11 @@ public interface OrderMapper {
     OrderItemOutDTO toOutDto(OrderItem orderItem);
 
     OrderOutDTO toOutDto(Order order);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    ShippingAddress toEntity(ShippingAddressDTO dto);
+
+    ShippingAddressDTO toDto(ShippingAddress address);
 }

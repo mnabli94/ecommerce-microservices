@@ -5,10 +5,12 @@ import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.kafka.annotation.EnableKafka;
 
 import java.util.stream.IntStream;
 
+@EnableJpaAuditing
 @EnableFeignClients
 @ImportAutoConfiguration(com.demo.kafka.utils.config.MessagingWiring.class)
 @SpringBootApplication

@@ -22,9 +22,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
-
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
@@ -56,8 +53,8 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderOutDTO createOrder(OrderInDTO dto) {
-        log.info("Creating order with {} items", dto.orderItems().size());
+    public OrderOutDTO createOrder(OrderInDTO dto, String username) {
+        log.info("Creating order for user {} with {} items", username, dto.orderItems().size());
         List<OrderItem> mergedOrderItems = dto.orderItems().stream().collect(Collectors.toMap(
                 OrderItemInDTO::productId,
                 Function.identity(),
@@ -67,7 +64,7 @@ public class OrderService {
                 .toList();
         Order order = orderMapper.toEntity(dto);
         order.setOrderItems(mergedOrderItems);
-        order.setUserId(currentUsername());
+        order.setUserId(username);
         order.setCreatedAt(OffsetDateTime.now());
         order.setStatus(OrderStatus.PENDING);
 
@@ -173,14 +170,6 @@ public class OrderService {
         return orderMapper.toOutDto(saved);
     }
 
-    private String currentUsername() {
-        var auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth instanceof JwtAuthenticationToken jat) {
-            return jat.getToken().getSubject();
-        }
-        throw new IllegalStateException("No authenticated user in SecurityContext");
-    }
-
     @Transactional
     public OrderOutDTO cancel(UUID id) {
         log.info("Cancelling order: id={}", id);
@@ -205,6 +194,5 @@ public class OrderService {
 
         return orderMapper.toOutDto(saved);
     }
-
 
 }
