@@ -117,6 +117,16 @@ public class OrderService {
                 .map(orderMapper::toOutDto);
     }
 
+    public Page<OrderOutDTO> findAllByUser(String userId, Pageable pageable) {
+        var from = OffsetDateTime.now().minusMonths(6);
+        var to = OffsetDateTime.now();
+        Specification<Order> spec = Specification
+                .where(OrderSpecifications.userIdEquals(userId)                )
+                .and(OrderSpecifications.createdBetween(from, to));
+        return orderRepository.findAll(spec, pageable)
+                .map(orderMapper::toOutDto);
+    }
+
     private void setUpProduct(OrderItem item) {
         String productId = item.getProductId();
         ProductDTO product = productCaller.getProduct(Long.parseLong(productId));

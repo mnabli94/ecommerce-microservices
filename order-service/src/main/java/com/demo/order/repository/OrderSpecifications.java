@@ -13,6 +13,10 @@ public class OrderSpecifications {
         return (root, q, cb) -> status == null ? cb.conjunction() : cb.equal(root.get("status"), status);
     }
 
+    public static Specification<Order> userIdEquals(String userId) {
+        return (root, q, cb) -> userId == null ? cb.conjunction() : cb.equal(root.get("userId"), userId);
+    }
+
     public static Specification<Order> minAmount(BigDecimal min) {
        return  (root, q, cb) -> min == null ? cb.conjunction() : cb.greaterThanOrEqualTo(root.get("totalAmount"), min);
     }

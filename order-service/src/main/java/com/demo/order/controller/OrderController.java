@@ -70,6 +70,26 @@ public class OrderController {
         return ResponseEntity.ok(orderService.findAll(status, minAmount, from, to, pageable));
     }
 
+    @Operation(summary = "List orders", description = "Retrieves a paginated list of orders with optional filtering")
+    @ApiResponse(responseCode = "200", description = "List of orders")
+    @GetMapping("/user/{username}")
+    public ResponseEntity<Page<OrderOutDTO>> getOrdersByUser(
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "asc") @Pattern(regexp = "asc|desc") String direction,
+            @PathVariable String username) {
+
+        if (!SORTABLE_FIELDS.contains(sortBy)) {
+            throw new IllegalArgumentException("Invalid sort field: " + sortBy + ". Allowed: " + SORTABLE_FIELDS);
+        }
+        Sort sort = direction.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+        return ResponseEntity.ok(orderService.findAllByUser(username, pageable));
+    }
+
     @Operation(summary = "Create order", description = "Creates a new order")
     @ApiResponse(responseCode = "201", description = "Order created successfully")
     @PostMapping
