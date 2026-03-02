@@ -8,7 +8,7 @@
         <version>1.0.0</version>
     </parent>
     <artifactId>events-api</artifactId>
-    <version>1.0.0</version>
+    <version>2.0.0</version>
     <name>events-api</name>
     <description>Shared event contracts for microservices</description>
 </project>

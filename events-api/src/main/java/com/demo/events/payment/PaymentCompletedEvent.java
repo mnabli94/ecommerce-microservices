@@ -1,12 +1,14 @@
-package com.demo.events.order;
+package com.demo.events.payment;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-public record OrderConfirmedEvent(
+public record PaymentCompletedEvent(
         UUID eventId,
         UUID orderId,
         String paymentReference,
+        BigDecimal amount,
         OffsetDateTime occurredAt
-) implements OrderEvent {
+) implements PaymentEvent {
 }
