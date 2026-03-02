@@ -1,0 +1,621 @@
+asyncapi: 2.1.0
+info:
+  title: Ecommerce Event Contracts
+  version: 2.0.0
+  description:
+    Kafka event contracts shared across all microservices.
+
+servers:
+  local:
+    url: localhost:9092
+    protocol: kafka
+    description: Local development
+  production:
+    url: kafka:9092
+    protocol: kafka
+    description: Production cluster
+
+channels:
+
+  # ─────────────────────────────────────────────────────────────
+  # ORDER
+  # ─────────────────────────────────────────────────────────────
+  order.created:
+    description: Published by Order Service when a customer places a new order
+    publish:
+      operationId: publishOrderCreated
+      bindings:
+        kafka:
+          groupId: order-service
+      message:
+        $ref: '#/components/messages/OrderCreatedEvent'
+
+  order.confirmed:
+    description: Published by Order Service when payment is successful
+    publish:
+      operationId: publishOrderConfirmed
+      bindings:
+        kafka:
+          groupId: order-service
+      message:
+        $ref: '#/components/messages/OrderConfirmedEvent'
+
+  order.cancelled:
+    description: Published by Order Service when an order is cancelled
+    publish:
+      operationId: publishOrderCancelled
+      bindings:
+        kafka:
+          groupId: order-service
+      message:
+        $ref: '#/components/messages/OrderCancelledEvent'
+
+  order.cancellation.requested:
+    description: Published by Order Service when a user requests cancellation after payment
+    publish:
+      operationId: publishOrderCancellationRequested
+      bindings:
+        kafka:
+          groupId: order-service
+      message:
+        $ref: '#/components/messages/OrderCancellationRequestedEvent'
+
+  # ─────────────────────────────────────────────────────────────
+  # STOCK
+  # ─────────────────────────────────────────────────────────────
+  stock.reserved:
+    description: Published by Product Service when stock is successfully reserved
+    publish:
+      operationId: publishStockReserved
+      bindings:
+        kafka:
+          groupId: product-service
+      message:
+        $ref: '#/components/messages/StockReservedEvent'
+
+  stock.reservation.failed:
+    description: Published by Product Service when stock reservation fails
+    publish:
+      operationId: publishStockReservationFailed
+      bindings:
+        kafka:
+          groupId: product-service
+      message:
+        $ref: '#/components/messages/StockReservationFailedEvent'
+
+  # ─────────────────────────────────────────────────────────────
+  # PAYMENT
+  # ─────────────────────────────────────────────────────────────
+  payment.completed:
+    description: Published by Payment Service when a payment is successfully charged
+    publish:
+      operationId: publishPaymentCompleted
+      bindings:
+        kafka:
+          groupId: payment-service
+      message:
+        $ref: '#/components/messages/PaymentCompletedEvent'
+
+  payment.failed:
+    description: Published by Payment Service when a payment charge fails
+    publish:
+      operationId: publishPaymentFailed
+      bindings:
+        kafka:
+          groupId: payment-service
+      message:
+        $ref: '#/components/messages/PaymentFailedEvent'
+
+  refund.completed:
+    description: Published by Payment Service when a refund is successfully processed
+    publish:
+      operationId: publishRefundCompleted
+      bindings:
+        kafka:
+          groupId: payment-service
+      message:
+        $ref: '#/components/messages/RefundCompletedEvent'
+
+  refund.failed:
+    description: Published by Payment Service when a refund fails
+    publish:
+      operationId: publishRefundFailed
+      bindings:
+        kafka:
+          groupId: payment-service
+      message:
+        $ref: '#/components/messages/RefundFailedEvent'
+
+  # ─────────────────────────────────────────────────────────────
+  # DELIVERY
+  # ─────────────────────────────────────────────────────────────
+  shipment.created:
+    description: Published by Delivery Service when a shipment record is created
+    publish:
+      operationId: publishShipmentCreated
+      bindings:
+        kafka:
+          groupId: delivery-service
+      message:
+        $ref: '#/components/messages/ShipmentCreatedEvent'
+
+  shipment.dispatched:
+    description: Published by Delivery Service when a shipment is dispatched by the carrier
+    publish:
+      operationId: publishShipmentDispatched
+      bindings:
+        kafka:
+          groupId: delivery-service
+      message:
+        $ref: '#/components/messages/ShipmentDispatchedEvent'
+
+  shipment.delivered:
+    description: Published by Delivery Service when a shipment is delivered
+    publish:
+      operationId: publishShipmentDelivered
+      bindings:
+        kafka:
+          groupId: delivery-service
+      message:
+        $ref: '#/components/messages/ShipmentDeliveredEvent'
+
+  shipment.cancelled:
+    description: Published by Delivery Service when a shipment is cancelled
+    publish:
+      operationId: publishShipmentCancelled
+      bindings:
+        kafka:
+          groupId: delivery-service
+      message:
+        $ref: '#/components/messages/ShipmentCancelledEvent'
+
+# ───────────────────────────────────────────────────────────────
+# COMPONENTS
+# ───────────────────────────────────────────────────────────────
+components:
+
+  messages:
+
+    OrderCreatedEvent:
+      name: OrderCreatedEvent
+      title: Order Created
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/KafkaHeaders'
+      payload:
+        $ref: '#/components/schemas/OrderCreatedEvent'
+
+    OrderConfirmedEvent:
+      name: OrderConfirmedEvent
+      title: Order Confirmed
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/KafkaHeaders'
+      payload:
+        $ref: '#/components/schemas/OrderConfirmedEvent'
+
+    OrderCancelledEvent:
+      name: OrderCancelledEvent
+      title: Order Cancelled
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/KafkaHeaders'
+      payload:
+        $ref: '#/components/schemas/OrderCancelledEvent'
+
+    OrderCancellationRequestedEvent:
+      name: OrderCancellationRequestedEvent
+      title: Order Cancellation Requested
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/KafkaHeaders'
+      payload:
+        $ref: '#/components/schemas/OrderCancellationRequestedEvent'
+
+    StockReservedEvent:
+      name: StockReservedEvent
+      title: Stock Reserved
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/KafkaHeaders'
+      payload:
+        $ref: '#/components/schemas/StockReservedEvent'
+
+    StockReservationFailedEvent:
+      name: StockReservationFailedEvent
+      title: Stock Reservation Failed
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/KafkaHeaders'
+      payload:
+        $ref: '#/components/schemas/StockReservationFailedEvent'
+
+    PaymentCompletedEvent:
+      name: PaymentCompletedEvent
+      title: Payment Completed
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/KafkaHeaders'
+      payload:
+        $ref: '#/components/schemas/PaymentCompletedEvent'
+
+    PaymentFailedEvent:
+      name: PaymentFailedEvent
+      title: Payment Failed
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/KafkaHeaders'
+      payload:
+        $ref: '#/components/schemas/PaymentFailedEvent'
+
+    RefundCompletedEvent:
+      name: RefundCompletedEvent
+      title: Refund Completed
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/KafkaHeaders'
+      payload:
+        $ref: '#/components/schemas/RefundCompletedEvent'
+
+    RefundFailedEvent:
+      name: RefundFailedEvent
+      title: Refund Failed
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/KafkaHeaders'
+      payload:
+        $ref: '#/components/schemas/RefundFailedEvent'
+
+    ShipmentCreatedEvent:
+      name: ShipmentCreatedEvent
+      title: Shipment Created
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/KafkaHeaders'
+      payload:
+        $ref: '#/components/schemas/ShipmentCreatedEvent'
+
+    ShipmentDispatchedEvent:
+      name: ShipmentDispatchedEvent
+      title: Shipment Dispatched
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/KafkaHeaders'
+      payload:
+        $ref: '#/components/schemas/ShipmentDispatchedEvent'
+
+    ShipmentDeliveredEvent:
+      name: ShipmentDeliveredEvent
+      title: Shipment Delivered
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/KafkaHeaders'
+      payload:
+        $ref: '#/components/schemas/ShipmentDeliveredEvent'
+
+    ShipmentCancelledEvent:
+      name: ShipmentCancelledEvent
+      title: Shipment Cancelled
+      contentType: application/json
+      headers:
+        $ref: '#/components/schemas/KafkaHeaders'
+      payload:
+        $ref: '#/components/schemas/ShipmentCancelledEvent'
+
+  schemas:
+
+    # ─── KAFKA HEADERS (injectés par kafka-utils/EventPublisher) ─
+    KafkaHeaders:
+      type: object
+      properties:
+        X-Event-Id:
+          type: string
+          format: uuid
+        X-Event-Type:
+          type: string
+          example: OrderCreatedEvent
+        X-Correlation-Id:
+          type: string
+          format: uuid
+        X-Producer:
+          type: string
+          example: order-service
+        X-Occurred-At:
+          type: string
+          format: date-time
+
+    # ─── SHARED ──────────────────────────────────────────────────
+    Item:
+      type: object
+      required: [productId, quantity, unitPrice]
+      properties:
+        productId:
+          type: integer
+          format: int64
+          example: 42
+        quantity:
+          type: integer
+          minimum: 1
+          example: 2
+        unitPrice:
+          type: number
+          format: decimal
+          example: 29.99
+
+    # ─── ORDER ───────────────────────────────────────────────────
+    OrderCreatedEvent:
+      type: object
+      required: [eventId, orderId, userId, contactEmail, paymentMethodId, totalAmount, occurredAt, items]
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          example: john_doe
+        contactEmail:
+          type: string
+          format: email
+          example: john@example.com
+        paymentMethodId:
+          type: string
+          description: Stripe payment method token — never raw card data
+          example: pm_1abc123xyz
+        totalAmount:
+          type: number
+          format: decimal
+          example: 59.98
+        occurredAt:
+          type: string
+          format: date-time
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/Item'
+
+    OrderConfirmedEvent:
+      type: object
+      required: [eventId, orderId, paymentReference, occurredAt]
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        paymentReference:
+          type: string
+          description: Stripe PaymentIntent ID
+          example: pi_3Nz8AbcStripe
+        occurredAt:
+          type: string
+          format: date-time
+
+    OrderCancelledEvent:
+      type: object
+      required: [eventId, orderId, reason, occurredAt]
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          example: Payment failed
+        occurredAt:
+          type: string
+          format: date-time
+
+    OrderCancellationRequestedEvent:
+      type: object
+      required: [eventId, orderId, occurredAt]
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          example: Customer changed mind
+        occurredAt:
+          type: string
+          format: date-time
+
+    # ─── STOCK ───────────────────────────────────────────────────
+    StockReservedEvent:
+      type: object
+      required: [eventId, orderId, userId, contactEmail, paymentMethodId, totalAmount, items, occurredAt]
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          example: john_doe
+        contactEmail:
+          type: string
+          format: email
+        paymentMethodId:
+          type: string
+        totalAmount:
+          type: number
+          format: decimal
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/Item'
+        occurredAt:
+          type: string
+          format: date-time
+
+    StockReservationFailedEvent:
+      type: object
+      required: [eventId, orderId, reason, occurredAt]
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          example: Insufficient stock for product 42
+        occurredAt:
+          type: string
+          format: date-time
+
+    # ─── PAYMENT ─────────────────────────────────────────────────
+    PaymentCompletedEvent:
+      type: object
+      required: [eventId, orderId, paymentReference, amount, occurredAt]
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        paymentReference:
+          type: string
+          example: pi_3Nz8AbcStripe
+        amount:
+          type: number
+          format: decimal
+        occurredAt:
+          type: string
+          format: date-time
+
+    PaymentFailedEvent:
+      type: object
+      required: [eventId, orderId, reason, occurredAt]
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          example: Card declined
+        occurredAt:
+          type: string
+          format: date-time
+
+    RefundCompletedEvent:
+      type: object
+      required: [eventId, orderId, paymentReference, amount, occurredAt]
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        paymentReference:
+          type: string
+        amount:
+          type: number
+          format: decimal
+        occurredAt:
+          type: string
+          format: date-time
+
+    RefundFailedEvent:
+      type: object
+      required: [eventId, orderId, reason, occurredAt]
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          example: Refund window expired
+        occurredAt:
+          type: string
+          format: date-time
+
+    # ─── DELIVERY ────────────────────────────────────────────────
+    ShipmentCreatedEvent:
+      type: object
+      required: [eventId, orderId, trackingNumber, carrier, occurredAt]
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        trackingNumber:
+          type: string
+          example: DHL-123456789
+        carrier:
+          type: string
+          example: DHL
+        estimatedDelivery:
+          type: string
+          format: date
+          example: "2026-03-10"
+        occurredAt:
+          type: string
+          format: date-time
+
+    ShipmentDispatchedEvent:
+      type: object
+      required: [eventId, orderId, trackingNumber, occurredAt]
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        trackingNumber:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time
+
+    ShipmentDeliveredEvent:
+      type: object
+      required: [eventId, orderId, occurredAt]
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        occurredAt:
+          type: string
+          format: date-time
+
+    ShipmentCancelledEvent:
+      type: object
+      required: [eventId, orderId, occurredAt]
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        occurredAt:
+          type: string
+          format: date-time
