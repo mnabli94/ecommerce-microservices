@@ -14,6 +14,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -43,7 +44,9 @@ public class OrderController {
 
     @Operation(summary = "Get order by ID", description = "Retrieves an order by its unique identifier")
     @ApiResponse(responseCode = "200", description = "Order found")
+    @ApiResponse(responseCode = "403", description = "Access denied")
     @ApiResponse(responseCode = "404", description = "Order not found")
+    @PreAuthorize("hasRole('ADMIN') or @orderSecurity.isOwner(#id, authentication.name)")
     @GetMapping("/{id}")
     public ResponseEntity<OrderOutDTO> get(@NotNull @PathVariable UUID id) {
         return ResponseEntity.ok(orderService.find(id));
@@ -51,6 +54,7 @@ public class OrderController {
 
     @Operation(summary = "List orders", description = "Retrieves a paginated list of orders with optional filtering")
     @ApiResponse(responseCode = "200", description = "List of orders")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping()
     public ResponseEntity<Page<OrderOutDTO>> get(@RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "10") @Min(1) @Max(100) int size,
@@ -70,8 +74,10 @@ public class OrderController {
         return ResponseEntity.ok(orderService.findAll(status, minAmount, from, to, pageable));
     }
 
-    @Operation(summary = "List orders", description = "Retrieves a paginated list of orders with optional filtering")
+    @Operation(summary = "List orders by user", description = "Retrieves a paginated list of orders for a specific user")
     @ApiResponse(responseCode = "200", description = "List of orders")
+    @ApiResponse(responseCode = "403", description = "Access denied")
+    @PreAuthorize("hasRole('ADMIN') or #username == authentication.name")
     @GetMapping("/user/{username}")
     public ResponseEntity<Page<OrderOutDTO>> getOrdersByUser(
             @RequestParam(defaultValue = "0") @Min(0) int page,
@@ -102,15 +108,19 @@ public class OrderController {
 
     @Operation(summary = "Confirm order", description = "Confirms an existing order")
     @ApiResponse(responseCode = "200", description = "Order confirmed successfully")
+    @ApiResponse(responseCode = "403", description = "Access denied")
     @ApiResponse(responseCode = "404", description = "Order not found")
     @PatchMapping("/{id}/confirm")
+    @PreAuthorize("hasRole('ADMIN') or @orderSecurity.isOwner(#id, authentication.name)")
     public OrderOutDTO confirm(@PathVariable UUID id) {
         return orderService.confirm(id);
     }
 
     @Operation(summary = "Cancel order", description = "Cancels an existing order")
     @ApiResponse(responseCode = "200", description = "Order cancelled successfully")
+    @ApiResponse(responseCode = "403", description = "Access denied")
     @ApiResponse(responseCode = "404", description = "Order not found")
+    @PreAuthorize("hasRole('ADMIN') or @orderSecurity.isOwner(#id, authentication.name)")
     @PatchMapping("/{id}/cancel")
     public OrderOutDTO cancel(@PathVariable UUID id) {
         return orderService.cancel(id);
