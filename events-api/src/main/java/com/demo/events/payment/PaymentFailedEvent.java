@@ -1,12 +1,12 @@
-package com.demo.events.order;
+package com.demo.events.payment;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-public record OrderConfirmedEvent(
+public record PaymentFailedEvent(
         UUID eventId,
         UUID orderId,
-        String paymentReference,
+        String reason,
         OffsetDateTime occurredAt
-) implements OrderEvent {
+) implements PaymentEvent {
 }

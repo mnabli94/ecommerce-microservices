@@ -1,10 +1,10 @@
-package com.demo.events.order;
+package com.demo.events.delivery;
 
 import com.demo.events.Event;
 
 import java.util.UUID;
 
-public interface OrderEvent extends Event {
+public interface DeliveryEvent extends Event {
     UUID orderId();
 
     default String key() {
