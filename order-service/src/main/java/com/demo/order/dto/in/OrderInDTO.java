@@ -7,7 +7,6 @@ import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.UUID;
 
 public record OrderInDTO(
         @NotNull(message = "Status cannot be null")
@@ -18,5 +17,10 @@ public record OrderInDTO(
         @Size(min = 1, message = "Order must have at least one item")
         @Valid
         List<OrderItemInDTO> orderItems,
-        BigDecimal totalAmount
+        BigDecimal totalAmount,
+        @NotBlank(message = "Contact email cannot be blank")
+        @Email(message = "Contact email must be a valid email address")
+        String contactEmail,
+        @NotBlank(message = "Payment method ID cannot be blank")
+        String paymentMethodId
 ) {}

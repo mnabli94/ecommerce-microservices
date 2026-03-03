@@ -20,6 +20,10 @@ public interface OrderMapper {
     @Mapping(target = "totalAmount", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "paymentReference", ignore = true)
+    @Mapping(target = "cancellationReason", ignore = true)
+    @Mapping(target = "confirmedAt", ignore = true)
+    @Mapping(target = "shippedAt", ignore = true)
     Order toEntity(OrderInDTO dto);
 
     @Mapping(target = "id", ignore = true)

@@ -7,12 +7,15 @@ import com.demo.order.dto.out.OrderOutDTO;
 import com.demo.order.entity.OrderStatus;
 import com.demo.order.service.OrderService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import com.demo.order.service.OrderSecurityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -41,6 +44,24 @@ class OrderControllerTest {
     @MockBean
     private OrderService orderService;
 
+    @MockBean
+    private OrderSecurityService orderSecurityService;
+
+    @MockBean
+    private JpaMetamodelMappingContext jpaMetamodelMappingContext;
+
+    private final String CONTACT_EMAIL = "test@example.com";
+    private final String PAYMENT_METHOD_ID = "pm_test_123";
+    private final String PAYMENT_REFERENCE = "PAY_REF_123";
+    private final String CANCELLATION_REASON = "OTHER";
+    private final List<OrderItemInDTO> ITEMS = List.of(new OrderItemInDTO("1", 1, BigDecimal.TEN));
+    private OrderInDTO orderInDTO;
+
+    @BeforeEach
+     void setUp() {
+        orderInDTO = buildOrderInDTO();
+    }
+
     // GET /api/orders/{id}
     @Test
     @WithMockUser(roles = "USER")
@@ -68,14 +89,13 @@ class OrderControllerTest {
     @Test
     @WithMockUser(roles = "USER")
     void createOrder_shouldReturnCreated_withStructuredAddress() throws Exception {
-        var dto = buildOrderInDTO();
         UUID id = UUID.randomUUID();
         when(orderService.createOrder(any(), anyString())).thenReturn(buildOutDTO(id));
 
         mockMvc.perform(post("/api/orders")
                 .principal(() -> "alice")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(dto)))
+                .content(objectMapper.writeValueAsString(orderInDTO)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.shippingAddress.firstName").value("Alice"))
                 .andExpect(jsonPath("$.shippingAddress.city").value("Paris"));
@@ -86,25 +106,27 @@ class OrderControllerTest {
     void createOrder_shouldReturnBadRequest_whenAddressHasMissingFields() throws Exception {
         var incompleteAddress = new ShippingAddressDTO(
                 "", "Dupont", null, "12 rue de la Paix", "Paris", "75001", "FR"); // firstName blank
-        var dto = new OrderInDTO(OrderStatus.PENDING, incompleteAddress,
-                List.of(new OrderItemInDTO("1", 1, BigDecimal.TEN)), null);
+        var dto = new OrderInDTO(OrderStatus.PENDING, incompleteAddress, ITEMS, BigDecimal.TEN, CONTACT_EMAIL, PAYMENT_METHOD_ID);
 
         mockMvc.perform(post("/api/orders")
                 .principal(() -> "alice")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(dto)))
+                .content(objectMapper.writeValueAsString(incompleteAddress)))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     @WithMockUser(roles = "USER")
     void createOrder_shouldReturnBadRequest_whenNoItems() throws Exception {
-        var dto = new OrderInDTO(OrderStatus.PENDING, validAddress(), List.of(), null);
+        OrderInDTO noItems = new OrderInDTO(
+                OrderStatus.PENDING,
+                validAddress(),
+                List.of(), null, CONTACT_EMAIL, PAYMENT_METHOD_ID);
 
         mockMvc.perform(post("/api/orders")
                 .principal(() -> "alice")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(dto)))
+                .content(objectMapper.writeValueAsString(noItems)))
                 .andExpect(status().isBadRequest());
     }
 
@@ -136,8 +158,7 @@ class OrderControllerTest {
 
     private OrderInDTO buildOrderInDTO() {
         return new OrderInDTO(OrderStatus.PENDING, validAddress(),
-                List.of(new OrderItemInDTO("1", 2, BigDecimal.valueOf(9.99))), null);
-    }
+                ITEMS,null, CONTACT_EMAIL, PAYMENT_METHOD_ID);}
 
     private ShippingAddressDTO validAddress() {
         return new ShippingAddressDTO(
@@ -150,7 +171,19 @@ class OrderControllerTest {
     }
 
     private OrderOutDTO buildOutDTO(UUID id, OrderStatus status) {
-        return new OrderOutDTO(id, "alice", status, validAddress(),
-                List.of(), BigDecimal.valueOf(19.98), OffsetDateTime.now());
+        return new OrderOutDTO(
+                id,
+                "alice",
+                CONTACT_EMAIL,
+                status,
+                validAddress(),
+                List.of(),
+                BigDecimal.valueOf(19.98),
+                PAYMENT_REFERENCE,
+                CANCELLATION_REASON,
+                OffsetDateTime.now(),
+                OffsetDateTime.now(),
+                OffsetDateTime.now()
+        );
     }
 }

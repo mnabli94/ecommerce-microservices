@@ -57,11 +57,12 @@ class OrderServiceTest {
     private OrderService orderService;
 
     private final String USERNAME = "testUser";
+    private final String CONTACT_EMAIL = "test@example.com";
+    private final String PAYMENT_METHOD_ID = "pm_test_123";
     private final UUID ORDER_ID = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
-        // Mock MeterRegistry to return a counter
         lenient().when(meterRegistry.counter(anyString(), any(String[].class))).thenReturn(counter);
     }
 
@@ -69,19 +70,25 @@ class OrderServiceTest {
     void createOrder_shouldSucceed_whenDataIsValid() {
         // Given
         OrderItemInDTO itemIn = new OrderItemInDTO("101", 2, new BigDecimal("50.00"));
-        OrderInDTO orderIn = new OrderInDTO(OrderStatus.PENDING, mock(ShippingAddressDTO.class), List.of(itemIn), null);
+        OrderInDTO orderIn = new OrderInDTO(
+                OrderStatus.PENDING, mock(ShippingAddressDTO.class), List.of(itemIn), null,
+                CONTACT_EMAIL, PAYMENT_METHOD_ID);
 
         Order order = new Order();
         order.setId(ORDER_ID);
         order.setUserId(USERNAME);
+        order.setContactEmail(CONTACT_EMAIL);
+        order.setPaymentMethodId(PAYMENT_METHOD_ID);
         OrderItem entityItem = new OrderItem();
         entityItem.setProductId("101");
         entityItem.setQuantity(2);
         order.setOrderItems(List.of(entityItem));
 
         ProductDTO product = new ProductDTO(101L, "Test Product", new BigDecimal("50.00"), true, 1L);
-        OrderOutDTO orderOut = new OrderOutDTO(ORDER_ID, USERNAME, OrderStatus.PENDING, null, List.of(),
-                new BigDecimal("100.00"), OffsetDateTime.now());
+        OrderOutDTO orderOut = new OrderOutDTO(
+                ORDER_ID, USERNAME, CONTACT_EMAIL, OrderStatus.PENDING,
+                null, List.of(), new BigDecimal("100.00"),
+                null, null, OffsetDateTime.now(), null, null);
 
         when(orderMapper.toEntity(any(OrderInDTO.class))).thenReturn(order);
         when(orderMapper.toEntity(any(OrderItemInDTO.class))).thenReturn(entityItem);
@@ -95,6 +102,7 @@ class OrderServiceTest {
         // Then
         assertNotNull(result);
         assertEquals(ORDER_ID, result.id());
+        assertEquals(CONTACT_EMAIL, result.contactEmail());
         verify(orderRepository).save(any(Order.class));
         verify(eventPublisher).publish(eq(OrderTopics.ORDER_CREATED), any());
     }
@@ -103,7 +111,9 @@ class OrderServiceTest {
     void createOrder_shouldThrowException_whenProductNotFound() {
         // Given
         OrderItemInDTO itemIn = new OrderItemInDTO("101", 1, new BigDecimal("50.00"));
-        OrderInDTO orderIn = new OrderInDTO(OrderStatus.PENDING, null, List.of(itemIn), null);
+        OrderInDTO orderIn = new OrderInDTO(
+                OrderStatus.PENDING, null, List.of(itemIn), null,
+                CONTACT_EMAIL, PAYMENT_METHOD_ID);
 
         Order order = new Order();
         order.setOrderItems(List.of(new OrderItem()));
@@ -124,7 +134,9 @@ class OrderServiceTest {
     void createOrder_shouldThrowException_whenProductOutOfStock() {
         // Given
         OrderItemInDTO itemIn = new OrderItemInDTO("101", 1, new BigDecimal("50.00"));
-        OrderInDTO orderIn = new OrderInDTO(OrderStatus.PENDING, null, List.of(itemIn), null);
+        OrderInDTO orderIn = new OrderInDTO(
+                OrderStatus.PENDING, null, List.of(itemIn), null,
+                CONTACT_EMAIL, PAYMENT_METHOD_ID);
 
         Order order = new Order();
         OrderItem item = new OrderItem();
@@ -146,8 +158,10 @@ class OrderServiceTest {
         // Given
         Order order = new Order();
         order.setId(ORDER_ID);
-        OrderOutDTO orderOut = new OrderOutDTO(ORDER_ID, USERNAME, OrderStatus.PENDING, null, List.of(), BigDecimal.TEN,
-                OffsetDateTime.now());
+        OrderOutDTO orderOut = new OrderOutDTO(
+                ORDER_ID, USERNAME, CONTACT_EMAIL, OrderStatus.PENDING,
+                null, List.of(), BigDecimal.TEN,
+                null, null, OffsetDateTime.now(), null, null);
 
         when(orderRepository.findById(ORDER_ID)).thenReturn(Optional.of(order));
         when(orderMapper.toOutDto(order)).thenReturn(orderOut);
@@ -167,8 +181,10 @@ class OrderServiceTest {
         order.setStatus(OrderStatus.PENDING);
         order.setOrderItems(List.of());
 
-        OrderOutDTO orderOut = new OrderOutDTO(ORDER_ID, USERNAME, OrderStatus.CONFIRMED, null, List.of(),
-                BigDecimal.TEN, OffsetDateTime.now());
+        OrderOutDTO orderOut = new OrderOutDTO(
+                ORDER_ID, USERNAME, CONTACT_EMAIL, OrderStatus.CONFIRMED,
+                null, List.of(), BigDecimal.TEN,
+                null, null, OffsetDateTime.now(), null, null);
 
         when(orderRepository.findById(ORDER_ID)).thenReturn(Optional.of(order));
         when(orderRepository.save(order)).thenReturn(order);
@@ -202,8 +218,10 @@ class OrderServiceTest {
         order.setId(ORDER_ID);
         order.setStatus(OrderStatus.PENDING);
 
-        OrderOutDTO orderOut = new OrderOutDTO(ORDER_ID, USERNAME, OrderStatus.CANCELLED, null, List.of(),
-                BigDecimal.TEN, OffsetDateTime.now());
+        OrderOutDTO orderOut = new OrderOutDTO(
+                ORDER_ID, USERNAME, CONTACT_EMAIL, OrderStatus.CANCELLED,
+                null, List.of(), BigDecimal.TEN,
+                null, null, OffsetDateTime.now(), null, null);
 
         when(orderRepository.findById(ORDER_ID)).thenReturn(Optional.of(order));
         when(orderRepository.save(order)).thenReturn(order);

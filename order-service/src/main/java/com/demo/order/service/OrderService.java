@@ -89,10 +89,11 @@ public class OrderService {
                 saved.getId(),
                 saved.getUserId(),
                 saved.getTotalAmount(),
+                saved.getContactEmail(),
+                saved.getPaymentMethodId(),
                 saved.getCreatedAt(),
                 saved.getOrderItems().stream()
-                        .map(i -> new OrderCreatedEvent.Item(Long.valueOf(i.getProductId()), i.getQuantity(),
-                                i.getUnitPrice()))
+                        .map(i -> new Item(Long.valueOf(i.getProductId()), i.getQuantity(), i.getUnitPrice()))
                         .toList());
 
         eventPublisher.publish(OrderTopics.ORDER_CREATED, evt);

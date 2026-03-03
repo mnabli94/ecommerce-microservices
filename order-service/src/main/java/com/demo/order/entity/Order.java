@@ -7,7 +7,6 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +27,7 @@ public class Order {
     private String userId;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 30)
     private OrderStatus status;
 
     @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
@@ -41,11 +40,29 @@ public class Order {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal totalAmount;
 
-    @Column(name = "created_at", nullable = false)
-    private OffsetDateTime  createdAt;
+    @Column(name = "contact_email", length = 254)
+    private String contactEmail;
 
-    @Column(name = "updated_at",nullable = false)
-    private OffsetDateTime  updatedAt;
+    @Column(name = "payment_method_id", length = 50)
+    private String paymentMethodId;
+
+    @Column(name = "payment_reference", length = 50)
+    private String paymentReference;
+
+    @Column(name = "cancellation_reason", length = 255)
+    private String cancellationReason;
+
+    @Column(name = "confirmed_at")
+    private OffsetDateTime confirmedAt;
+
+    @Column(name = "shipped_at")
+    private OffsetDateTime shippedAt;
+
+    @Column(name = "created_at", nullable = false)
+    private OffsetDateTime createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private OffsetDateTime updatedAt;
 
     @PrePersist
     void onCreate() {
