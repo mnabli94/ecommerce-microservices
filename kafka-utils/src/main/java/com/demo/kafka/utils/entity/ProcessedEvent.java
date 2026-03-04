@@ -1,6 +1,9 @@
-package com.demo.product.entity;
+package com.demo.kafka.utils.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,6 +17,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ProcessedEvent {
+
     @Id
     @Column(name = "event_id")
     private UUID eventId;

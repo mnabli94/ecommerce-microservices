@@ -2,8 +2,8 @@ package com.demo.product.listener;
 
 import com.demo.events.order.OrderConfirmedEvent;
 import com.demo.events.order.OrderCreatedEvent;
-import com.demo.product.entity.ProcessedEvent;
-import com.demo.product.repository.ProcessedEventRepository;
+import com.demo.kafka.utils.entity.ProcessedEvent;
+import com.demo.kafka.utils.repository.ProcessedEventRepository;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

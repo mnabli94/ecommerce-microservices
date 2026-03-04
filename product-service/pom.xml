@@ -101,8 +101,8 @@
 
         <dependency>
             <groupId>com.demo</groupId>
-            <artifactId>events-api</artifactId>
-            <version>1.0.0</version>
+            <artifactId>kafka-utils</artifactId>
+            <version>${kafka.utils.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.kafka</groupId>

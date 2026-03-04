@@ -133,7 +133,7 @@ services:
       SPRING_DATASOURCE_USERNAME: ${USER_DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${USER_DB_PASSWORD}
       SERVER_PORT: 8080
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9093
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9093
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
       SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:-demo123}
@@ -161,7 +161,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${PRODUCT_DB_PASSWORD}
       SERVER_PORT: 8081
       AUTH_SERVICE_URL: http://auth-service:8080
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9093
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9093
     networks:
       - app-network
 
@@ -189,7 +189,7 @@ services:
       SERVER_PORT: 8082
       PRODUCT_SERVICE_URL: http://product-service:8081
       AUTH_SERVICE_URL: http://auth-service:8080
-      KAFKA_BOOTSTRAP_SERVERS: kafka:9093
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9093
     networks:
       - app-network
 

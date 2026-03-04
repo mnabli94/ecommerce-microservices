@@ -1,12 +1,12 @@
-package com.demo.product.config;
+package com.demo.kafka.utils.config;
 
-import com.fasterxml.jackson.databind.JsonSerializer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
@@ -22,6 +22,7 @@ import org.springframework.util.backoff.FixedBackOff;
 import java.util.Map;
 
 @Configuration
+@ConditionalOnBean(ConsumerFactory.class)
 public class KafkaConsumerConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(KafkaConsumerConfig.class);
