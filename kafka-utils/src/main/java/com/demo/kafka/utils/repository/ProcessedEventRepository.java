@@ -1,6 +1,6 @@
-package com.demo.product.repository;
+package com.demo.kafka.utils.repository;
 
-import com.demo.product.entity.ProcessedEvent;
+import com.demo.kafka.utils.entity.ProcessedEvent;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
