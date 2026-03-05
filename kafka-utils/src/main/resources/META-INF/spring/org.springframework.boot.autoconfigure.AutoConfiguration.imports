@@ -1,1 +1,2 @@
 com.demo.kafka.utils.config.KafkaUtilsJpaAutoConfiguration
+com.demo.kafka.utils.config.KafkaConsumerConfig
