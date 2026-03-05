@@ -8,14 +8,14 @@
         <version>1.0.0</version>
     </parent>
     <artifactId>kafka-utils</artifactId>
-    <version>1.0.0</version>
+    <version>2.0.0</version>
     <name>kafka-utils</name>
     <description>Shared Kafka module for microservices</description>
     <dependencies>
         <dependency>
             <groupId>com.demo</groupId>
             <artifactId>events-api</artifactId>
-            <version>1.0.0</version>
+            <version>${events.api.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.kafka</groupId>
