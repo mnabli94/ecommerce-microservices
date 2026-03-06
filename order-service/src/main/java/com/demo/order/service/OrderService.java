@@ -40,6 +40,9 @@ public class OrderService {
     private final ProductCaller productCaller;
     private final MeterRegistry meterRegistry;
     private final EventPublisher eventPublisher;
+    private static final List<OrderStatus> REQUEST_CANCELLATION_ELIGIBLE_STATUSES = List.of(
+            OrderStatus.CONFIRMED, OrderStatus.PROCESSING, OrderStatus.SHIPPED
+    );
 
     public OrderService(OrderRepository orderRepository,
             OrderMapper orderMapper,
@@ -189,9 +192,10 @@ public class OrderService {
     public OrderOutDTO cancel(UUID id, String reason) {
         log.info("Cancelling order: id={}", id);
         var order = orderRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Order not found"));
-        if (order.getStatus() == OrderStatus.CONFIRMED) {
-            log.error("Cannot cancel CONFIRMED order: id={}", id);
-            throw new IllegalStateException("CONFIRMED orders cannot be cancelled");
+        var orderStatus = order.getStatus();
+        if (orderStatus != OrderStatus.PENDING) {
+            log.error("Cannot cancel {} order (not PENDING): id={}", orderStatus, id);
+            throw new IllegalStateException("Only PENDING orders can be cancelled");
         }
         order.setStatus(OrderStatus.CANCELLED);
         order.setCancellationReason(reason);
@@ -203,10 +207,37 @@ public class OrderService {
                 UUID.randomUUID(),
                 saved.getId(),
                 reason,
-                saved.getCreatedAt());
+                OffsetDateTime.now());
 
         eventPublisher.publish(OrderTopics.ORDER_CANCELLED, evt);
         log.debug("OrderCancelledEvent published: orderId={}", saved.getId());
+
+        return orderMapper.toOutDto(saved);
+    }
+
+    @Transactional
+    public OrderOutDTO requestCancellation(UUID id, String reason) {
+        log.info("Requesting cancellation for order: id={}", id);
+        var order = orderRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Order not found"));
+        var orderStatus = order.getStatus();
+        if (!REQUEST_CANCELLATION_ELIGIBLE_STATUSES.contains(orderStatus)) {
+            log.error("Cannot request cancellation for {} order: id={}", orderStatus, id);
+            throw new IllegalStateException("%s orders cannot request cancellation".formatted(orderStatus));
+        }
+        order.setStatus(OrderStatus.CANCELLATION_REQUESTED);
+        order.setCancellationReason(reason);
+        var saved = orderRepository.save(order);
+        log.info("Cancellation requested for order: id={}", id);
+        meterRegistry.counter("order.cancellation_requested", "service", "order-service").increment();
+
+        var evt = new OrderCancellationRequestedEvent(
+                UUID.randomUUID(),
+                saved.getId(),
+                reason,
+                OffsetDateTime.now());
+
+        eventPublisher.publish(OrderTopics.ORDER_CANCELLATION_REQUESTED, evt);
+        log.debug("OrderCancellationRequestedEvent published: orderId={}", saved.getId());
 
         return orderMapper.toOutDto(saved);
     }

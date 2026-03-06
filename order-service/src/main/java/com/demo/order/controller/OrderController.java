@@ -1,14 +1,12 @@
 package com.demo.order.controller;
 
+import com.demo.order.dto.in.CancelRequestDTO;
 import com.demo.order.dto.in.OrderInDTO;
 import com.demo.order.dto.out.OrderOutDTO;
 import com.demo.order.entity.OrderStatus;
 import com.demo.order.service.OrderService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -106,23 +104,14 @@ public class OrderController {
                 .body(out);
     }
 
-    @Operation(summary = "Confirm order", description = "Confirms an existing order")
-    @ApiResponse(responseCode = "200", description = "Order confirmed successfully")
-    @ApiResponse(responseCode = "403", description = "Access denied")
-    @ApiResponse(responseCode = "404", description = "Order not found")
-    @PatchMapping("/{id}/confirm")
-    @PreAuthorize("hasRole('ADMIN') or @orderSecurity.isOwner(#id, authentication.name)")
-    public OrderOutDTO confirm(@PathVariable UUID id) {
-        return orderService.confirm(null);
-    }
-
-    @Operation(summary = "Cancel order", description = "Cancels an existing order")
-    @ApiResponse(responseCode = "200", description = "Order cancelled successfully")
+    @Operation(summary = "Request order cancellation", description = "Requests cancellation of a confirmed, processing or shipped order")
+    @ApiResponse(responseCode = "200", description = "Cancellation requested successfully")
+    @ApiResponse(responseCode = "400", description = "Invalid request or ineligible order status")
     @ApiResponse(responseCode = "403", description = "Access denied")
     @ApiResponse(responseCode = "404", description = "Order not found")
     @PreAuthorize("hasRole('ADMIN') or @orderSecurity.isOwner(#id, authentication.name)")
     @PatchMapping("/{id}/cancel")
-    public OrderOutDTO cancel(@PathVariable UUID id) {
-        return orderService.cancel(id, "Cancelled by user");
+    public OrderOutDTO cancel(@PathVariable UUID id, @Valid @RequestBody CancelRequestDTO dto) {
+        return orderService.requestCancellation(id, dto.reason());
     }
 }

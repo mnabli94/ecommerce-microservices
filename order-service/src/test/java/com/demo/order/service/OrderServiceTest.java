@@ -257,4 +257,42 @@ class OrderServiceTest {
         // When & Then
         assertThrows(IllegalStateException.class, () -> orderService.cancel(ORDER_ID, "Cancelled by user"));
     }
+
+    @Test
+    void requestCancellation_shouldSetCancellationRequested_whenConfirmed() {
+        // Given
+        Order order = new Order();
+        order.setId(ORDER_ID);
+        order.setStatus(OrderStatus.CONFIRMED);
+
+        OrderOutDTO orderOut = new OrderOutDTO(
+                ORDER_ID, USERNAME, CONTACT_EMAIL, OrderStatus.CANCELLATION_REQUESTED,
+                null, List.of(), BigDecimal.TEN,
+                null, "Customer changed their mind", OffsetDateTime.now(), null, null);
+
+        when(orderRepository.findById(ORDER_ID)).thenReturn(Optional.of(order));
+        when(orderRepository.save(order)).thenReturn(order);
+        when(orderMapper.toOutDto(order)).thenReturn(orderOut);
+
+        // When
+        OrderOutDTO result = orderService.requestCancellation(ORDER_ID, "Customer changed their mind");
+
+        // Then
+        assertEquals(OrderStatus.CANCELLATION_REQUESTED, result.status());
+        verify(eventPublisher).publish(eq(OrderTopics.ORDER_CANCELLATION_REQUESTED), any());
+    }
+
+    @Test
+    void requestCancellation_shouldThrowException_whenPending() {
+        // Given
+        Order order = new Order();
+        order.setId(ORDER_ID);
+        order.setStatus(OrderStatus.PENDING);
+
+        when(orderRepository.findById(ORDER_ID)).thenReturn(Optional.of(order));
+
+        // When & Then
+        assertThrows(IllegalStateException.class,
+                () -> orderService.requestCancellation(ORDER_ID, "Customer changed their mind"));
+    }
 }

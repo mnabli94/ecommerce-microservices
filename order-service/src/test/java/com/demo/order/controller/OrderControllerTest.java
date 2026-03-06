@@ -1,7 +1,7 @@
 package com.demo.order.controller;
 
-import com.demo.events.payment.PaymentCompletedEvent;
 import com.demo.order.dto.ShippingAddressDTO;
+import com.demo.order.dto.in.CancelRequestDTO;
 import com.demo.order.dto.in.OrderInDTO;
 import com.demo.order.dto.in.OrderItemInDTO;
 import com.demo.order.dto.out.OrderOutDTO;
@@ -131,31 +131,35 @@ class OrderControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
-    // PATCH /api/orders/{id}/confirm ───────────────────────────────────────
-
-    @Test
-    @WithMockUser(roles = "USER")
-    @Disabled
-    void confirm_shouldReturnOk() throws Exception {
-//        UUID id = UUID.randomUUID();
-//        when(orderService.confirm(id)).thenReturn(buildOutDTO(id, OrderStatus.CONFIRMED));
-//
-//        mockMvc.perform(patch("/api/orders/{id}/confirm", id))
-//                .andExpect(status().isOk())
-//                .andExpect(jsonPath("$.status").value("CONFIRMED"));
-    }
-
     // PATCH /api/orders/{id}/cancel
 
     @Test
     @WithMockUser(roles = "USER")
     void cancel_shouldReturnOk() throws Exception {
         UUID id = UUID.randomUUID();
-        when(orderService.cancel(id, "Cancelled by user")).thenReturn(buildOutDTO(id, OrderStatus.CANCELLED));
+        var reason = "Customer changed their mind";
+        var body = new CancelRequestDTO(reason);
+        when(orderService.requestCancellation(any(), anyString()))
+                .thenReturn(buildOutDTO(id, OrderStatus.CANCELLATION_REQUESTED, reason));
 
-        mockMvc.perform(patch("/api/orders/{id}/cancel", id))
+        mockMvc.perform(patch("/api/orders/{id}/cancel", id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("CANCELLED"));
+                .andExpect(jsonPath("$.status").value("CANCELLATION_REQUESTED"))
+                .andExpect(jsonPath("$.cancellationReason").value(reason));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void cancel_shouldReturnBadRequest_whenReasonIsBlank() throws Exception {
+        UUID id = UUID.randomUUID();
+        var body = new CancelRequestDTO("");
+
+        mockMvc.perform(patch("/api/orders/{id}/cancel", id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isBadRequest());
     }
 
     private OrderInDTO buildOrderInDTO() {
@@ -173,6 +177,10 @@ class OrderControllerTest {
     }
 
     private OrderOutDTO buildOutDTO(UUID id, OrderStatus status) {
+        return buildOutDTO(id, status, CANCELLATION_REASON);
+    }
+
+    private OrderOutDTO buildOutDTO(UUID id, OrderStatus status, String cancellationReason) {
         return new OrderOutDTO(
                 id,
                 "alice",
@@ -182,7 +190,7 @@ class OrderControllerTest {
                 List.of(),
                 BigDecimal.valueOf(19.98),
                 PAYMENT_REFERENCE,
-                CANCELLATION_REASON,
+                cancellationReason,
                 OffsetDateTime.now(),
                 OffsetDateTime.now(),
                 OffsetDateTime.now()
