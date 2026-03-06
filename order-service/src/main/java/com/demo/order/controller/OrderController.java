@@ -113,7 +113,7 @@ public class OrderController {
     @PatchMapping("/{id}/confirm")
     @PreAuthorize("hasRole('ADMIN') or @orderSecurity.isOwner(#id, authentication.name)")
     public OrderOutDTO confirm(@PathVariable UUID id) {
-        return orderService.confirm(id);
+        return orderService.confirm(null);
     }
 
     @Operation(summary = "Cancel order", description = "Cancels an existing order")
@@ -123,6 +123,6 @@ public class OrderController {
     @PreAuthorize("hasRole('ADMIN') or @orderSecurity.isOwner(#id, authentication.name)")
     @PatchMapping("/{id}/cancel")
     public OrderOutDTO cancel(@PathVariable UUID id) {
-        return orderService.cancel(id);
+        return orderService.cancel(id, "Cancelled by user");
     }
 }

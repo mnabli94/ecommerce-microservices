@@ -2,6 +2,7 @@ package com.demo.order.service;
 
 import com.demo.events.order.*;
 import com.demo.events.order.OrderTopics;
+import com.demo.events.payment.PaymentCompletedEvent;
 import com.demo.kafka.utils.producer.EventPublisher;
 import com.demo.order.dto.in.OrderInDTO;
 import com.demo.order.dto.in.OrderItemInDTO;
@@ -157,7 +158,8 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderOutDTO confirm(UUID id) {
+    public OrderOutDTO confirm(PaymentCompletedEvent event) {
+        var id = event.orderId();
         log.info("Confirming order: id={}", id);
         var order = orderRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Order not found"));
         if (order.getStatus() != OrderStatus.PENDING) {
@@ -165,6 +167,8 @@ public class OrderService {
             throw new IllegalStateException("Only PENDING orders can be confirmed");
         }
         order.setStatus(OrderStatus.CONFIRMED);
+        order.setConfirmedAt(event.occurredAt());
+        order.setPaymentReference(event.paymentReference());
         var saved = orderRepository.save(order);
         log.info("Order confirmed: id={}", id);
         meterRegistry.counter("order.confirmed", "service", "order-service").increment();
@@ -172,8 +176,8 @@ public class OrderService {
         var evt = new OrderConfirmedEvent(
                 UUID.randomUUID(),
                 saved.getId(),
-                UUID.randomUUID().toString(), //TODO — payment service integration pending
-                saved.getCreatedAt());
+                event.paymentReference(),
+                event.occurredAt());
 
         eventPublisher.publish(OrderTopics.ORDER_CONFIRMED, evt);
         log.debug("OrderConfirmedEvent published: orderId={}", saved.getId());
@@ -182,7 +186,7 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderOutDTO cancel(UUID id) {
+    public OrderOutDTO cancel(UUID id, String reason) {
         log.info("Cancelling order: id={}", id);
         var order = orderRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Order not found"));
         if (order.getStatus() == OrderStatus.CONFIRMED) {
@@ -190,6 +194,7 @@ public class OrderService {
             throw new IllegalStateException("CONFIRMED orders cannot be cancelled");
         }
         order.setStatus(OrderStatus.CANCELLED);
+        order.setCancellationReason(reason);
         var saved = orderRepository.save(order);
         log.info("Order cancelled: id={}", id);
         meterRegistry.counter("order.cancelled", "service", "order-service").increment();
@@ -197,7 +202,7 @@ public class OrderService {
         var evt = new OrderCancelledEvent(
                 UUID.randomUUID(),
                 saved.getId(),
-                "Cancelled by user",
+                reason,
                 saved.getCreatedAt());
 
         eventPublisher.publish(OrderTopics.ORDER_CANCELLED, evt);

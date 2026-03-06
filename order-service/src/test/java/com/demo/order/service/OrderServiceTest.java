@@ -1,6 +1,7 @@
 package com.demo.order.service;
 
 import com.demo.events.order.OrderTopics;
+import com.demo.events.payment.PaymentCompletedEvent;
 import com.demo.kafka.utils.producer.EventPublisher;
 import com.demo.order.dto.ShippingAddressDTO;
 import com.demo.order.dto.in.OrderInDTO;
@@ -60,6 +61,15 @@ class OrderServiceTest {
     private final String CONTACT_EMAIL = "test@example.com";
     private final String PAYMENT_METHOD_ID = "pm_test_123";
     private final UUID ORDER_ID = UUID.randomUUID();
+    private final String PAYMENT_REFERENCE = "PAY_REF_123";
+    private final PaymentCompletedEvent paymentCompletedEvent = new PaymentCompletedEvent(
+            UUID.randomUUID(),
+            ORDER_ID,
+            PAYMENT_REFERENCE,
+            BigDecimal.TEN,
+            OffsetDateTime.now()
+    );
+
 
     @BeforeEach
     void setUp() {
@@ -191,7 +201,7 @@ class OrderServiceTest {
         when(orderMapper.toOutDto(order)).thenReturn(orderOut);
 
         // When
-        OrderOutDTO result = orderService.confirm(ORDER_ID);
+        OrderOutDTO result = orderService.confirm(paymentCompletedEvent);
 
         // Then
         assertEquals(OrderStatus.CONFIRMED, result.status());
@@ -208,7 +218,7 @@ class OrderServiceTest {
         when(orderRepository.findById(ORDER_ID)).thenReturn(Optional.of(order));
 
         // When & Then
-        assertThrows(IllegalStateException.class, () -> orderService.confirm(ORDER_ID));
+        assertThrows(IllegalStateException.class, () -> orderService.confirm(paymentCompletedEvent));
     }
 
     @Test
@@ -228,7 +238,7 @@ class OrderServiceTest {
         when(orderMapper.toOutDto(order)).thenReturn(orderOut);
 
         // When
-        OrderOutDTO result = orderService.cancel(ORDER_ID);
+        OrderOutDTO result = orderService.cancel(ORDER_ID, "Cancelled by user");
 
         // Then
         assertEquals(OrderStatus.CANCELLED, result.status());
@@ -245,6 +255,6 @@ class OrderServiceTest {
         when(orderRepository.findById(ORDER_ID)).thenReturn(Optional.of(order));
 
         // When & Then
-        assertThrows(IllegalStateException.class, () -> orderService.cancel(ORDER_ID));
+        assertThrows(IllegalStateException.class, () -> orderService.cancel(ORDER_ID, "Cancelled by user"));
     }
 }

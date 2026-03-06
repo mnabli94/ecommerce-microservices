@@ -8,10 +8,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
 @EnableJpaAuditing
 @EnableFeignClients
-@ImportAutoConfiguration({
-        com.demo.kafka.utils.config.MessagingWiring.class,
-        com.demo.kafka.utils.config.KafkaConsumerConfig.class
-})
+@ImportAutoConfiguration(com.demo.kafka.utils.config.MessagingWiring.class)
 @SpringBootApplication
 public class OrderServiceApplication {
     public static void main(String[] args) {
