@@ -51,12 +51,22 @@ class ProductServiceTest {
         dto = new ProductDTO(null, "Laptop", new BigDecimal("19.90"), true, 1L);
     }
 
+    private static Product buildProduct(Long id, String name, BigDecimal price, boolean inStock, Category cat) {
+        Product p = new Product();
+        p.setId(id);
+        p.setName(name);
+        p.setPrice(price);
+        p.setInStock(inStock);
+        p.setCategory(cat);
+        return p;
+    }
+
     @Test
     void create_shouldReturnSuccess() {
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(productRepository.save(any(Product.class))).thenAnswer(invocationOnMock -> {
             Product in = invocationOnMock.getArgument(0);
-            return new Product(1L, in.getName(), in.getPrice(), in.isInStock(), in.getCategory());
+            return buildProduct(1L, in.getName(), in.getPrice(), in.isInStock(), in.getCategory());
         });
 
         ProductDTO created = productService.create(dto);
@@ -98,7 +108,7 @@ class ProductServiceTest {
 
     @Test
     void find_shouldReturnDTO() {
-        Product product = new Product(1L, "Laptop", new BigDecimal("19.90"), true, category);
+        Product product = buildProduct(1L, "Laptop", new BigDecimal("19.90"), true, category);
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
 
@@ -118,7 +128,7 @@ class ProductServiceTest {
     void update_shouldReturnDTO() {
 
         Category initialCategory = new Category(1L, "Cat2");
-        Product initialProduct = new Product(1L, "HP", new BigDecimal("19.90"), true, initialCategory);
+        Product initialProduct = buildProduct(1L, "HP", new BigDecimal("19.90"), true, initialCategory);
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(initialProduct));
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(initialCategory));
@@ -156,7 +166,7 @@ class ProductServiceTest {
     void findAll_shouldReturnPageOfProducts() {
         Category category = new Category(1L, "Cat2");
         var products = List.of(
-                new Product(1L, "Phone", new BigDecimal("299.99"), true, category)
+                buildProduct(1L, "Phone", new BigDecimal("299.99"), true, category)
 //                , new Product(2L, "Laptop", new BigDecimal("999.99"), true, category)
         );
         Pageable pageable = PageRequest.of(0,5);

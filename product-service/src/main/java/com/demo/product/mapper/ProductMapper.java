@@ -21,14 +21,12 @@ public final class ProductMapper {
     
     public static Product toNewEntity(ProductDTO dto, Category category) {
         Objects.requireNonNull(dto, "dto is required");
-        // category peut être null si produit sans catégorie (selon règles métier)
-        return new Product(
-                null,
-                trim(dto.name()),
-                dto.price(),
-                dto.inStock(),
-                category
-        );
+        Product p = new Product();
+        p.setName(trim(dto.name()));
+        p.setPrice(dto.price());
+        p.setInStock(dto.inStock());
+        p.setCategory(category);
+        return p;
     }
     
     public static void applyPut(Product target, ProductDTO dto, Category category) {

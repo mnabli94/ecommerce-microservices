@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -13,7 +12,6 @@ import java.math.BigDecimal;
 
 @Entity
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
 public class Product {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,8 +26,21 @@ public class Product {
 
     private boolean inStock = true;
 
+    @Column(name = "quantity", nullable = false)
+    private int quantity = 0;
+
+    @Column(name = "reserved_quantity", nullable = false)
+    private int reservedQuantity = 0;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     private Category category;
 
+    public int getAvailableQuantity() {
+        return quantity - reservedQuantity;
+    }
+
+    public void updateInStockStatus() {
+        this.inStock = getAvailableQuantity() > 0;
+    }
 }

@@ -39,7 +39,11 @@ public class ProductService {
                                         return new EntityNotFoundException(
                                                         "Category not found with id: %d".formatted(dto.categoryId()));
                                 });
-                Product product = new Product(null, dto.name(), dto.price(), dto.inStock(), category);
+                Product product = new Product();
+                product.setName(dto.name());
+                product.setPrice(dto.price());
+                product.setInStock(dto.inStock());
+                product.setCategory(category);
                 ProductDTO saved = ProductMapper.toDto(productRepository.save(product));
                 logger.info("Product created successfully: id={}", saved.id());
                 return saved;
