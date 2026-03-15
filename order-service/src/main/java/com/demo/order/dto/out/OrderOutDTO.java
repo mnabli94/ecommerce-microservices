@@ -29,6 +29,9 @@ public record OrderOutDTO(
         BigDecimal totalAmount,
         String paymentReference,
         String cancellationReason,
+        Integer retryCount,
+        @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss[.SSS][XXX]")
+        OffsetDateTime expiresAt,
         @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss[.SSS][XXX]")
         OffsetDateTime createdAt,
         @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss[.SSS][XXX]")

@@ -191,6 +191,8 @@ class OrderControllerTest {
                 BigDecimal.valueOf(19.98),
                 PAYMENT_REFERENCE,
                 cancellationReason,
+                null,
+                null,
                 OffsetDateTime.now(),
                 OffsetDateTime.now(),
                 OffsetDateTime.now()

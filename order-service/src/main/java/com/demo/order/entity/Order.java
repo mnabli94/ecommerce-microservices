@@ -49,7 +49,7 @@ public class Order {
     @Column(name = "payment_reference", length = 50)
     private String paymentReference;
 
-    @Column(name = "cancellation_reason", length = 255)
+    @Column(name = "cancellation_reason")
     private String cancellationReason;
 
     @Column(name = "confirmed_at")
@@ -57,6 +57,12 @@ public class Order {
 
     @Column(name = "shipped_at")
     private OffsetDateTime shippedAt;
+
+    @Column(name = "retry_count", nullable = false)
+    private int retryCount = 0;
+
+    @Column(name = "expires_at")
+    private OffsetDateTime expiresAt;
 
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
@@ -68,6 +74,7 @@ public class Order {
     void onCreate() {
         createdAt = OffsetDateTime.now();
         updatedAt = createdAt;
+        expiresAt = createdAt.plusMinutes(15);
         if (status == null) {
             status = OrderStatus.PENDING;
         }

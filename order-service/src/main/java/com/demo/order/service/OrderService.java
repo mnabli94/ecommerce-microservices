@@ -43,6 +43,10 @@ public class OrderService {
     private static final List<OrderStatus> REQUEST_CANCELLATION_ELIGIBLE_STATUSES = List.of(
             OrderStatus.CONFIRMED, OrderStatus.PROCESSING, OrderStatus.SHIPPED
     );
+    private static final List<OrderStatus> CANCEL_ELIGIBLE_STATUSES = List.of(
+            OrderStatus.PENDING, OrderStatus.AWAITING_PAYMENT
+    );
+    private static final int MAX_RETRY_COUNT = 3;
 
     public OrderService(OrderRepository orderRepository,
             OrderMapper orderMapper,
@@ -193,9 +197,9 @@ public class OrderService {
         log.info("Cancelling order: id={}", id);
         var order = orderRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Order not found"));
         var orderStatus = order.getStatus();
-        if (orderStatus != OrderStatus.PENDING) {
-            log.error("Cannot cancel {} order (not PENDING): id={}", orderStatus, id);
-            throw new IllegalStateException("Only PENDING orders can be cancelled");
+        if (!CANCEL_ELIGIBLE_STATUSES.contains(orderStatus)) {
+            log.error("Cannot cancel {} order (not PENDING or AWAITING_PAYMENT): id={}", orderStatus, id);
+            throw new IllegalStateException("Only PENDING or AWAITING_PAYMENT orders can be cancelled");
         }
         order.setStatus(OrderStatus.CANCELLED);
         order.setCancellationReason(reason);
@@ -213,6 +217,47 @@ public class OrderService {
         log.debug("OrderCancelledEvent published: orderId={}", saved.getId());
 
         return orderMapper.toOutDto(saved);
+    }
+
+    @Transactional
+    public void handleTransientFailure(UUID id, String reason) {
+        log.info("Handling transient failure for order: id={}, reason={}", id, reason);
+        var order = orderRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Order not found: " + id));
+        if (order.getStatus() != OrderStatus.PENDING) {
+            log.warn("handleTransientFailure called on non-PENDING order {}: status={}", id, order.getStatus());
+            return;
+        }
+        order.setRetryCount(order.getRetryCount() + 1);
+        boolean giveUp = order.getRetryCount() >= MAX_RETRY_COUNT
+                || OffsetDateTime.now().isAfter(order.getExpiresAt());
+        if (giveUp) {
+            log.info("Order {} giving up after {} retries, cancelling (reason={})", id, order.getRetryCount(), reason);
+            order.setStatus(OrderStatus.CANCELLED);
+            order.setCancellationReason(reason);
+            orderRepository.save(order);
+            meterRegistry.counter("order.cancelled", "service", "order-service").increment();
+            var evt = new OrderCancelledEvent(UUID.randomUUID(), id, reason, OffsetDateTime.now());
+            eventPublisher.publish(OrderTopics.ORDER_CANCELLED, evt);
+            log.debug("OrderCancelledEvent published after retry exhaustion: orderId={}", id);
+        } else {
+            log.info("Order {} will be retried (retryCount={})", id, order.getRetryCount());
+            orderRepository.save(order);
+            meterRegistry.counter("order.retry", "service", "order-service").increment();
+            var retryEvt = new OrderCreatedEvent(
+                    UUID.randomUUID(),
+                    order.getId(),
+                    order.getUserId(),
+                    order.getTotalAmount(),
+                    order.getContactEmail(),
+                    order.getPaymentMethodId(),
+                    order.getCreatedAt(),
+                    order.getOrderItems().stream()
+                            .map(i -> new Item(Long.valueOf(i.getProductId()), i.getQuantity(), i.getUnitPrice()))
+                            .toList());
+            eventPublisher.publish(OrderTopics.ORDER_CREATED, retryEvt);
+            log.debug("OrderCreatedEvent republished for retry: orderId={}, retryCount={}", id, order.getRetryCount());
+        }
     }
 
     @Transactional

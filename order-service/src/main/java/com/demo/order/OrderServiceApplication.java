@@ -5,9 +5,11 @@ import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @EnableJpaAuditing
 @EnableFeignClients
+@EnableScheduling
 @ImportAutoConfiguration(com.demo.kafka.utils.config.MessagingWiring.class)
 @SpringBootApplication
 public class OrderServiceApplication {

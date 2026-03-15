@@ -52,9 +52,9 @@ public class OrderEventListener {
             return;
         }
         markProcessed(event.eventId(), event.getClass().getSimpleName());
-        orderService.cancel(event.orderId(), event.reason());
+        orderService.handleTransientFailure(event.orderId(), event.reason());
         count("stock-reservation-failed");
-        log.info("Order {} cancelled due to stock reservation failure: {}", event.orderId(), event.reason());
+        log.info("Transient failure handled for order {} (stock reservation failed): {}", event.orderId(), event.reason());
     }
 
     @KafkaListener(topics = StockTopics.STOCK_RESERVATION_FAILED + ".dlq", groupId = "order-service-dlq")
@@ -216,8 +216,17 @@ public class OrderEventListener {
             return;
         }
         markProcessed(event.eventId(), event.getClass().getSimpleName());
-        count("refund-failed");
-        log.error("Refund failed for order {}: {}", event.orderId(), event.reason());
+        orderRepository.findById(event.orderId()).ifPresentOrElse(order -> {
+            if (order.getStatus() == OrderStatus.REFUNDING) {
+                order.setStatus(OrderStatus.CANCELLED);
+                order.setCancellationReason("Refund failed: " + event.reason());
+                orderRepository.save(order);
+                count("refund-failed");
+                log.error("Refund failed for order {}, order marked CANCELLED: {}", event.orderId(), event.reason());
+            } else {
+                log.warn("Unexpected status {} for refund.failed on order {}", order.getStatus(), event.orderId());
+            }
+        }, () -> log.warn("Order not found for refund.failed: orderId={}", event.orderId()));
     }
 
     @KafkaListener(topics = PaymentTopics.REFUND_FAILED + ".dlq", groupId = "order-service-dlq")

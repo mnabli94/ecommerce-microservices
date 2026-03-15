@@ -47,8 +47,23 @@ class OrderEventListenerTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void onStockReservationFailed_shouldCancelPendingOrder() {
-        Order order = orderRepository.save(orderWithStatus(OrderStatus.PENDING));
+    void onStockReservationFailed_shouldRetryOrder_whenUnderMaxRetries() {
+        Order order = orderRepository.save(orderWithStatus(OrderStatus.PENDING, 0));
+        var event = new StockReservationFailedEvent(UUID.randomUUID(), order.getId(), "Out of stock", OffsetDateTime.now());
+
+        eventPublisher.publish(StockTopics.STOCK_RESERVATION_FAILED, event);
+
+        await().atMost(15, SECONDS).untilAsserted(() -> {
+            Order updated = orderRepository.findById(order.getId()).orElseThrow();
+            assertThat(updated.getStatus()).isEqualTo(OrderStatus.PENDING);
+            assertThat(updated.getRetryCount()).isEqualTo(1);
+        });
+        assertThat(processedEventRepository.existsById(event.eventId())).isTrue();
+    }
+
+    @Test
+    void onStockReservationFailed_shouldCancelPendingOrder_whenMaxRetriesReached() {
+        Order order = orderRepository.save(orderWithStatus(OrderStatus.PENDING, 2));
         var event = new StockReservationFailedEvent(UUID.randomUUID(), order.getId(), "Out of stock", OffsetDateTime.now());
 
         eventPublisher.publish(StockTopics.STOCK_RESERVATION_FAILED, event);
@@ -77,8 +92,8 @@ class OrderEventListenerTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void onPaymentFailed_shouldCancelPendingOrder() {
-        Order order = orderRepository.save(orderWithStatus(OrderStatus.PENDING));
+    void onPaymentFailed_shouldCancelPendingOrder_immediately() {
+        Order order = orderRepository.save(orderWithStatus(OrderStatus.PENDING, 0));
         var event = new PaymentFailedEvent(UUID.randomUUID(), order.getId(), "Insufficient funds", OffsetDateTime.now());
 
         eventPublisher.publish(PaymentTopics.PAYMENT_FAILED, event);
@@ -152,11 +167,12 @@ class OrderEventListenerTest extends AbstractIntegrationTest {
 
     @Test
     void duplicateEvent_shouldBeSkipped() {
-        Order order = orderRepository.save(orderWithStatus(OrderStatus.PENDING));
+        // Use retryCount=2 so the first event exhausts retries → CANCELLED
+        Order order = orderRepository.save(orderWithStatus(OrderStatus.PENDING, 2));
         UUID eventId = UUID.randomUUID();
         var event = new StockReservationFailedEvent(eventId, order.getId(), "Out of stock", OffsetDateTime.now());
 
-        // First publish — order should be cancelled
+        // First publish — max retries reached → order should be cancelled
         eventPublisher.publish(StockTopics.STOCK_RESERVATION_FAILED, event);
         await().atMost(15, SECONDS).untilAsserted(() ->
                 assertThat(orderRepository.findById(order.getId()).orElseThrow().getStatus())
@@ -178,9 +194,14 @@ class OrderEventListenerTest extends AbstractIntegrationTest {
     }
 
     private Order orderWithStatus(OrderStatus status) {
+        return orderWithStatus(status, 0);
+    }
+
+    private Order orderWithStatus(OrderStatus status, int retryCount) {
         Order order = new Order();
         order.setStatus(status);
         order.setTotalAmount(BigDecimal.valueOf(99.99));
+        order.setRetryCount(retryCount);
         return order;
     }
 }

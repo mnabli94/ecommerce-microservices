@@ -98,7 +98,7 @@ class OrderServiceTest {
         OrderOutDTO orderOut = new OrderOutDTO(
                 ORDER_ID, USERNAME, CONTACT_EMAIL, OrderStatus.PENDING,
                 null, List.of(), new BigDecimal("100.00"),
-                null, null, OffsetDateTime.now(), null, null);
+                null, null, null, null, OffsetDateTime.now(), null, null);
 
         when(orderMapper.toEntity(any(OrderInDTO.class))).thenReturn(order);
         when(orderMapper.toEntity(any(OrderItemInDTO.class))).thenReturn(entityItem);
@@ -171,7 +171,7 @@ class OrderServiceTest {
         OrderOutDTO orderOut = new OrderOutDTO(
                 ORDER_ID, USERNAME, CONTACT_EMAIL, OrderStatus.PENDING,
                 null, List.of(), BigDecimal.TEN,
-                null, null, OffsetDateTime.now(), null, null);
+                null, null, null, null, OffsetDateTime.now(), null, null);
 
         when(orderRepository.findById(ORDER_ID)).thenReturn(Optional.of(order));
         when(orderMapper.toOutDto(order)).thenReturn(orderOut);
@@ -194,7 +194,7 @@ class OrderServiceTest {
         OrderOutDTO orderOut = new OrderOutDTO(
                 ORDER_ID, USERNAME, CONTACT_EMAIL, OrderStatus.CONFIRMED,
                 null, List.of(), BigDecimal.TEN,
-                null, null, OffsetDateTime.now(), null, null);
+                null, null, null, null, OffsetDateTime.now(), null, null);
 
         when(orderRepository.findById(ORDER_ID)).thenReturn(Optional.of(order));
         when(orderRepository.save(order)).thenReturn(order);
@@ -231,7 +231,7 @@ class OrderServiceTest {
         OrderOutDTO orderOut = new OrderOutDTO(
                 ORDER_ID, USERNAME, CONTACT_EMAIL, OrderStatus.CANCELLED,
                 null, List.of(), BigDecimal.TEN,
-                null, null, OffsetDateTime.now(), null, null);
+                null, null, null, null, OffsetDateTime.now(), null, null);
 
         when(orderRepository.findById(ORDER_ID)).thenReturn(Optional.of(order));
         when(orderRepository.save(order)).thenReturn(order);
@@ -268,7 +268,7 @@ class OrderServiceTest {
         OrderOutDTO orderOut = new OrderOutDTO(
                 ORDER_ID, USERNAME, CONTACT_EMAIL, OrderStatus.CANCELLATION_REQUESTED,
                 null, List.of(), BigDecimal.TEN,
-                null, "Customer changed their mind", OffsetDateTime.now(), null, null);
+                null, "Customer changed their mind", null, null, OffsetDateTime.now(), null, null);
 
         when(orderRepository.findById(ORDER_ID)).thenReturn(Optional.of(order));
         when(orderRepository.save(order)).thenReturn(order);
@@ -294,5 +294,82 @@ class OrderServiceTest {
         // When & Then
         assertThrows(IllegalStateException.class,
                 () -> orderService.requestCancellation(ORDER_ID, "Customer changed their mind"));
+    }
+
+    @Test
+    void handleTransientFailure_shouldRetry_whenUnderMaxRetries() {
+        // Given
+        OrderItem item = new OrderItem();
+        item.setProductId("101");
+        item.setQuantity(2);
+        item.setUnitPrice(new BigDecimal("50.00"));
+
+        Order order = new Order();
+        order.setId(ORDER_ID);
+        order.setUserId(USERNAME);
+        order.setContactEmail(CONTACT_EMAIL);
+        order.setPaymentMethodId(PAYMENT_METHOD_ID);
+        order.setTotalAmount(new BigDecimal("100.00"));
+        order.setCreatedAt(OffsetDateTime.now());
+        order.setStatus(OrderStatus.PENDING);
+        order.setRetryCount(0);
+        order.setExpiresAt(OffsetDateTime.now().plusMinutes(15));
+        order.setOrderItems(List.of(item));
+
+        when(orderRepository.findById(ORDER_ID)).thenReturn(Optional.of(order));
+        when(orderRepository.save(order)).thenReturn(order);
+
+        // When
+        orderService.handleTransientFailure(ORDER_ID, "Stock not available");
+
+        // Then
+        assertEquals(1, order.getRetryCount());
+        assertEquals(OrderStatus.PENDING, order.getStatus());
+        verify(orderRepository).save(order);
+        // OrderCreatedEvent must be republished so stock-service retries the reservation
+        verify(eventPublisher).publish(eq(OrderTopics.ORDER_CREATED), any());
+        verify(eventPublisher, never()).publish(eq(OrderTopics.ORDER_CANCELLED), any());
+    }
+
+    @Test
+    void handleTransientFailure_shouldCancel_whenMaxRetriesReached() {
+        // Given — retryCount=2, after increment → 3 >= MAX_RETRY_COUNT(3) → give up
+        Order order = new Order();
+        order.setId(ORDER_ID);
+        order.setStatus(OrderStatus.PENDING);
+        order.setRetryCount(2);
+        order.setExpiresAt(OffsetDateTime.now().plusMinutes(15));
+
+        when(orderRepository.findById(ORDER_ID)).thenReturn(Optional.of(order));
+        when(orderRepository.save(order)).thenReturn(order);
+
+        // When
+        orderService.handleTransientFailure(ORDER_ID, "Payment declined");
+
+        // Then
+        assertEquals(OrderStatus.CANCELLED, order.getStatus());
+        verify(orderRepository).save(order);
+        verify(eventPublisher).publish(eq(OrderTopics.ORDER_CANCELLED), any());
+    }
+
+    @Test
+    void handleTransientFailure_shouldCancel_whenExpired() {
+        // Given — expiresAt in the past → order expired
+        Order order = new Order();
+        order.setId(ORDER_ID);
+        order.setStatus(OrderStatus.PENDING);
+        order.setRetryCount(0);
+        order.setExpiresAt(OffsetDateTime.now().minusHours(1));
+
+        when(orderRepository.findById(ORDER_ID)).thenReturn(Optional.of(order));
+        when(orderRepository.save(order)).thenReturn(order);
+
+        // When
+        orderService.handleTransientFailure(ORDER_ID, "Stock not available");
+
+        // Then
+        assertEquals(OrderStatus.CANCELLED, order.getStatus());
+        verify(orderRepository).save(order);
+        verify(eventPublisher).publish(eq(OrderTopics.ORDER_CANCELLED), any());
     }
 }
