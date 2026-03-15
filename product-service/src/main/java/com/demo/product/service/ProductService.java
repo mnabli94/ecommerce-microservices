@@ -42,7 +42,8 @@ public class ProductService {
                 Product product = new Product();
                 product.setName(dto.name());
                 product.setPrice(dto.price());
-                product.setInStock(dto.inStock());
+                product.setQuantity(dto.quantity());
+                product.updateInStockStatus();
                 product.setCategory(category);
                 ProductDTO saved = ProductMapper.toDto(productRepository.save(product));
                 logger.info("Product created successfully: id={}", saved.id());
@@ -80,7 +81,8 @@ public class ProductService {
 
                 product.setName(dto.name());
                 product.setPrice(dto.price());
-                product.setInStock(dto.inStock());
+                product.setQuantity(dto.quantity());
+                product.updateInStockStatus();
                 product.setCategory(category);
                 logger.info("Product updated successfully: id={}", id);
                 return ProductMapper.toDto(productRepository.save(product));
@@ -95,6 +97,21 @@ public class ProductService {
                 }
                 productRepository.deleteById(id);
                 logger.info("Product deleted successfully: id={}", id);
+        }
+
+        @Transactional
+        public ProductDTO addStock(Long id, int quantityToAdd) {
+                logger.info("Adding stock: productId={}, quantityToAdd={}", id, quantityToAdd);
+                Product product = productRepository.findByIdForUpdate(id)
+                                .orElseThrow(() -> {
+                                        logger.error("Product not found for stock update: id={}", id);
+                                        return new EntityNotFoundException(
+                                                        "Product not found with id: %d".formatted(id));
+                                });
+                product.setQuantity(product.getQuantity() + quantityToAdd);
+                product.updateInStockStatus();
+                logger.info("Stock updated: productId={}, newQuantity={}", id, product.getQuantity());
+                return ProductMapper.toDto(productRepository.save(product));
         }
 
         public Page<ProductDTO> findAll(String name,

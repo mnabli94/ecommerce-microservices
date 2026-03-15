@@ -25,6 +25,8 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
+import static org.mockito.ArgumentMatchers.eq;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -48,16 +50,17 @@ class ProductServiceTest {
     @BeforeEach
     void setUp() {
         category = new Category(1L, "Electronics");
-        dto = new ProductDTO(null, "Laptop", new BigDecimal("19.90"), true, 1L);
+        dto = new ProductDTO(null, "Laptop", new BigDecimal("19.90"), true, 1L, 10);
     }
 
-    private static Product buildProduct(Long id, String name, BigDecimal price, boolean inStock, Category cat) {
+    private static Product buildProduct(Long id, String name, BigDecimal price, boolean inStock, Category cat, int quantity) {
         Product p = new Product();
         p.setId(id);
         p.setName(name);
         p.setPrice(price);
         p.setInStock(inStock);
         p.setCategory(cat);
+        p.setQuantity(quantity);
         return p;
     }
 
@@ -66,7 +69,7 @@ class ProductServiceTest {
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(productRepository.save(any(Product.class))).thenAnswer(invocationOnMock -> {
             Product in = invocationOnMock.getArgument(0);
-            return buildProduct(1L, in.getName(), in.getPrice(), in.isInStock(), in.getCategory());
+            return buildProduct(1L, in.getName(), in.getPrice(), in.isInStock(), in.getCategory(), in.getQuantity());
         });
 
         ProductDTO created = productService.create(dto);
@@ -90,13 +93,13 @@ class ProductServiceTest {
 
     @Test
     void create_shouldThrow_whenCategoryIsNull() {
-        dto = new ProductDTO(null, "Laptop", new BigDecimal("19.90"), true, null);
+        dto = new ProductDTO(null, "Laptop", new BigDecimal("19.90"), true, null, 0);
         assertThrows(EntityNotFoundException.class, () -> productService.create(dto));
     }
 
     @Test
     void createProduct_shouldThrow_whenCategoryNotFound() {
-        ProductDTO input = new ProductDTO(null, "Laptop", new BigDecimal("19.90"), true, 99L);
+        ProductDTO input = new ProductDTO(null, "Laptop", new BigDecimal("19.90"), true, 99L, 0);
         when(categoryRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(EntityNotFoundException.class, () -> productService.create(input));
@@ -108,7 +111,7 @@ class ProductServiceTest {
 
     @Test
     void find_shouldReturnDTO() {
-        Product product = buildProduct(1L, "Laptop", new BigDecimal("19.90"), true, category);
+        Product product = buildProduct(1L, "Laptop", new BigDecimal("19.90"), true, category, 10);
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
 
@@ -128,7 +131,7 @@ class ProductServiceTest {
     void update_shouldReturnDTO() {
 
         Category initialCategory = new Category(1L, "Cat2");
-        Product initialProduct = buildProduct(1L, "HP", new BigDecimal("19.90"), true, initialCategory);
+        Product initialProduct = buildProduct(1L, "HP", new BigDecimal("19.90"), true, initialCategory, 5);
 
         when(productRepository.findById(1L)).thenReturn(Optional.of(initialProduct));
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(initialCategory));
@@ -163,10 +166,37 @@ class ProductServiceTest {
 
 
     @Test
+    void addStock_shouldIncrementQuantityAndUpdateInStockStatus() {
+        Product product = buildProduct(1L, "Laptop", new BigDecimal("19.90"), false, category, 0);
+
+        when(productRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(product));
+        when(productRepository.save(any(Product.class))).thenAnswer(i -> i.getArgument(0));
+
+        ProductDTO result = productService.addStock(1L, 50);
+
+        assertAll(
+                () -> assertEquals(50, result.quantity()),
+                () -> assertTrue(result.inStock())
+        );
+        verify(productRepository).findByIdForUpdate(1L);
+        verify(productRepository).save(any(Product.class));
+    }
+
+    @Test
+    void addStock_shouldThrowWhenProductNotFound() {
+        when(productRepository.findByIdForUpdate(99L)).thenReturn(Optional.empty());
+
+        assertThrows(EntityNotFoundException.class, () -> productService.addStock(99L, 10));
+
+        verify(productRepository).findByIdForUpdate(99L);
+        verifyNoMoreInteractions(productRepository);
+    }
+
+    @Test
     void findAll_shouldReturnPageOfProducts() {
         Category category = new Category(1L, "Cat2");
         var products = List.of(
-                buildProduct(1L, "Phone", new BigDecimal("299.99"), true, category)
+                buildProduct(1L, "Phone", new BigDecimal("299.99"), true, category, 20)
 //                , new Product(2L, "Laptop", new BigDecimal("999.99"), true, category)
         );
         Pageable pageable = PageRequest.of(0,5);

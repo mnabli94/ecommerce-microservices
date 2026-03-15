@@ -15,26 +15,29 @@ public final class ProductMapper {
                 entity.getName(),
                 entity.getPrice(),
                 entity.isInStock(),
-                entity.getCategory() != null ? entity.getCategory().getId() : null
+                entity.getCategory() != null ? entity.getCategory().getId() : null,
+                entity.getQuantity()
         );
     }
-    
+
     public static Product toNewEntity(ProductDTO dto, Category category) {
         Objects.requireNonNull(dto, "dto is required");
         Product p = new Product();
         p.setName(trim(dto.name()));
         p.setPrice(dto.price());
-        p.setInStock(dto.inStock());
+        p.setQuantity(dto.quantity());
+        p.updateInStockStatus();
         p.setCategory(category);
         return p;
     }
-    
+
     public static void applyPut(Product target, ProductDTO dto, Category category) {
         Objects.requireNonNull(target, "target entity is required");
         Objects.requireNonNull(dto, "dto is required");
         target.setName(trim(dto.name()));
         target.setPrice(dto.price());
-        target.setInStock(dto.inStock());
+        target.setQuantity(dto.quantity());
+        target.updateInStockStatus();
         target.setCategory(category);
     }
     

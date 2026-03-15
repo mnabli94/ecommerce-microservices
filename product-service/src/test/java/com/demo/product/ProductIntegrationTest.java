@@ -42,7 +42,7 @@ public class ProductIntegrationTest extends AbstractIntegrationTest {
         CategoryDTO category = categoryService.create(new CategoryDTO(null, "Test Category"));
 
         // 2. Create a product via REST (using MockMvc to simulate authenticated call)
-        ProductDTO productDTO = new ProductDTO(null, "Test Product", new BigDecimal("99.99"), true, category.id());
+        ProductDTO productDTO = new ProductDTO(null, "Test Product", new BigDecimal("99.99"), true, category.id(), 100);
 
         String responseContent = mockMvc.perform(post("/api/products")
                 .contentType(MediaType.APPLICATION_JSON)

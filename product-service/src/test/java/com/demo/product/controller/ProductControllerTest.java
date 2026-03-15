@@ -31,7 +31,7 @@ class ProductControllerTest {
 
     @Test
     void create_shouldReturnSuccess() throws Exception {
-        var dto = new ProductDTO(1L, "Laptop", new BigDecimal("19.90"), true, 10L);
+        var dto = new ProductDTO(1L, "Laptop", new BigDecimal("19.90"), true, 10L, 5);
         when(service.create(any())).thenReturn(dto);
         mvc.perform(
                 post("/api/products").with(jwt())
