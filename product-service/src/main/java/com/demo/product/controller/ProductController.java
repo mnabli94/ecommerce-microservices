@@ -2,6 +2,7 @@ package com.demo.product.controller;
 
 import com.demo.product.service.ProductService;
 import com.demo.product.dto.ProductDTO;
+import com.demo.product.dto.StockAdjustmentDTO;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -84,6 +85,15 @@ public class ProductController {
     @PutMapping("/{id}")
     public ResponseEntity<ProductDTO> update(@NotNull @PathVariable Long id, @Valid @RequestBody ProductDTO dto) {
         return ResponseEntity.ok(service.update(id, dto));
+    }
+
+    @Operation(summary = "Add stock", description = "Increments stock quantity for a product (admin)")
+    @ApiResponse(responseCode = "200", description = "Stock updated successfully")
+    @ApiResponse(responseCode = "404", description = "Product not found")
+    @PatchMapping("/{id}/stock")
+    public ResponseEntity<ProductDTO> addStock(@NotNull @PathVariable Long id,
+                                               @Valid @RequestBody StockAdjustmentDTO dto) {
+        return ResponseEntity.ok(service.addStock(id, dto.quantityToAdd()));
     }
 
     @Operation(summary = "Delete product", description = "Deletes a product by ID")
