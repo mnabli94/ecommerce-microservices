@@ -14,6 +14,8 @@ import com.demo.product.repository.StockReservationRepository;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -46,40 +48,47 @@ public class StockService {
      * Tente de réserver le stock pour tous les items de la commande.
      * Si tous les items sont disponibles → réserve + publie stock.reserved.
      * Si au moins un item est insuffisant → publie stock.reservation.failed (sans modifier le stock).
-     * Doit être appelé dans une transaction existante (@Transactional du listener).
      */
+    @Transactional(propagation = Propagation.MANDATORY)
     public void reserveStock(OrderCreatedEvent event) {
         log.info("Attempting stock reservation for orderId={}", event.orderId());
 
-        // Étape 1 : verrouiller et vérifier tous les produits
-        Map<Long, Product> lockedProducts = new LinkedHashMap<>();
+        Map<Long, Integer> demandByProduct = new LinkedHashMap<>();
         for (Item item : event.items()) {
-            Optional<Product> opt = productRepository.findByIdForUpdate(item.productId());
+            demandByProduct.merge(item.productId(), item.quantity(), Integer::sum);
+        }
+
+        Map<Long, Product> lockedProducts = new LinkedHashMap<>();
+        for (Map.Entry<Long, Integer> entry : demandByProduct.entrySet()) {
+            Long productId = entry.getKey();
+            int totalDemand = entry.getValue();
+
+            Optional<Product> opt = productRepository.findByIdForUpdate(productId);
             if (opt.isEmpty()) {
-                String reason = "Product not found: id=%d".formatted(item.productId());
+                String reason = "Product not found: id=%d".formatted(productId);
                 log.warn("Stock reservation failed — {}", reason);
                 publishFailed(event.orderId(), reason);
                 return;
             }
             Product product = opt.get();
 
-            if (product.getAvailableQuantity() < item.quantity()) {
+            if (product.getAvailableQuantity() < totalDemand) {
                 String reason = "Insufficient stock for product %d: available=%d, requested=%d"
-                        .formatted(item.productId(), product.getAvailableQuantity(), item.quantity());
+                        .formatted(productId, product.getAvailableQuantity(), totalDemand);
                 log.warn("Stock reservation failed — {}", reason);
                 publishFailed(event.orderId(), reason);
                 return;
             }
-            lockedProducts.put(item.productId(), product);
+            lockedProducts.put(productId, product);
         }
 
         List<ReservedItem> reservedItems = new ArrayList<>();
-        for (Item item : event.items()) {
-            Product product = lockedProducts.get(item.productId());
-            product.setReservedQuantity(product.getReservedQuantity() + item.quantity());
+        for (Map.Entry<Long, Integer> entry : demandByProduct.entrySet()) {
+            Product product = lockedProducts.get(entry.getKey());
+            product.setReservedQuantity(product.getReservedQuantity() + entry.getValue());
             product.updateInStockStatus();
             productRepository.save(product);
-            reservedItems.add(new ReservedItem(item.productId(), item.quantity()));
+            reservedItems.add(new ReservedItem(entry.getKey(), entry.getValue()));
         }
 
         stockReservationRepository.save(
@@ -102,24 +111,35 @@ public class StockService {
 
     /**
      * Libère le stock réservé pour une commande annulée.
-     * Doit être appelé dans une transaction existante (@Transactional du listener).
      */
+    @Transactional(propagation = Propagation.MANDATORY)
     public void releaseStock(UUID orderId) {
         log.info("Releasing stock reservation for orderId={}", orderId);
 
-        stockReservationRepository.findById(orderId).ifPresentOrElse(reservation -> {
-            for (ReservedItem reservedItem : reservation.getItems()) {
-                productRepository.findByIdForUpdate(reservedItem.getProductId()).ifPresentOrElse(product -> {
-                    int newReserved = Math.max(0, product.getReservedQuantity() - reservedItem.getQuantity());
-                    product.setReservedQuantity(newReserved);
-                    product.updateInStockStatus();
-                    productRepository.save(product);
-                }, () -> log.warn("Product {} not found during stock release for orderId={}", reservedItem.getProductId(), orderId));
+        Optional<StockReservation> optReservation = stockReservationRepository.findById(orderId);
+        if (optReservation.isEmpty()) {
+            log.warn("No stock reservation found for orderId={} (already released or never reserved)", orderId);
+            return;
+        }
+
+        StockReservation reservation = optReservation.get();
+        for (ReservedItem reservedItem : reservation.getItems()) {
+            Optional<Product> optProduct = productRepository.findByIdForUpdate(reservedItem.getProductId());
+            if (optProduct.isEmpty()) {
+                log.warn("Product {} not found during stock release for orderId={}",
+                        reservedItem.getProductId(), orderId);
+                continue;
             }
-            stockReservationRepository.delete(reservation);
-            meterRegistry.counter("stock.released", "service", "product-service").increment();
-            log.info("Stock released for orderId={}", orderId);
-        }, () -> log.warn("No stock reservation found for orderId={} (already released or never reserved)", orderId));
+            Product product = optProduct.get();
+            int newReserved = Math.max(0, product.getReservedQuantity() - reservedItem.getQuantity());
+            product.setReservedQuantity(newReserved);
+            product.updateInStockStatus();
+            productRepository.save(product);
+        }
+
+        stockReservationRepository.delete(reservation);
+        meterRegistry.counter("stock.released", "service", "product-service").increment();
+        log.info("Stock released for orderId={}", orderId);
     }
 
     private void publishFailed(UUID orderId, String reason) {

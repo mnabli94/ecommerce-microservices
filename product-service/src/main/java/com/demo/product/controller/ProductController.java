@@ -16,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
@@ -90,6 +91,7 @@ public class ProductController {
     @Operation(summary = "Add stock", description = "Increments stock quantity for a product (admin)")
     @ApiResponse(responseCode = "200", description = "Stock updated successfully")
     @ApiResponse(responseCode = "404", description = "Product not found")
+    @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}/stock")
     public ResponseEntity<ProductDTO> addStock(@NotNull @PathVariable Long id,
                                                @Valid @RequestBody StockAdjustmentDTO dto) {
