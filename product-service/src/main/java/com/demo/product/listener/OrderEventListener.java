@@ -49,6 +49,7 @@ public class OrderEventListener {
         log.error("DLQ: order.created.dlq event={}", event);
     }
 
+    @Deprecated // TODO to be placed on delivery-service
     @KafkaListener(topics = OrderTopics.ORDER_CONFIRMED, groupId = "product-service")
     @Transactional
     public void onOrderConfirmed(OrderConfirmedEvent event) {
@@ -60,6 +61,7 @@ public class OrderEventListener {
         count("order-confirmed");
     }
 
+    @Deprecated // TODO to be placed on delivery-service
     @KafkaListener(topics = OrderTopics.ORDER_CONFIRMED + ".dlq", groupId = "product-service-dlq")
     public void onOrderConfirmedDlq(OrderConfirmedEvent event) {
         log.error("DLQ: order.confirmed.dlq event={}", event);
