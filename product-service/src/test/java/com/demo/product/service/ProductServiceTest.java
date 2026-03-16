@@ -1,7 +1,6 @@
 package com.demo.product.service;
 
 import com.demo.product.dto.ProductDTO;
-import com.demo.product.mapper.ProductMapper;
 import com.demo.product.entity.Category;
 import com.demo.product.entity.Product;
 import com.demo.product.repository.CategoryRepository;
@@ -24,9 +23,6 @@ import org.springframework.data.jpa.domain.Specification;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
-
-import static org.mockito.ArgumentMatchers.eq;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
