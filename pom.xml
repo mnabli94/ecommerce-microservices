@@ -90,6 +90,7 @@
         <module>auth-service</module>
         <module>product-service</module>
         <module>order-service</module>
+        <module>payment-service</module>
         <module>kafka-utils</module>
         <module>security-utils</module>
         <module>config-server</module>
