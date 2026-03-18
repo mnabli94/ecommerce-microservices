@@ -43,6 +43,11 @@ spring:
           predicates:
             - Path=/api/orders/**
 
+        - id: payment-service
+          uri: http://payment-service:8083
+          predicates:
+            - Path=/api/payments/**
+
         - id: order-actuator
           uri: http://order-service:8082
           predicates:
@@ -63,6 +68,13 @@ spring:
             - Path=/actuator/auth/**
           filters:
             - RewritePath=/actuator/auth/(?<segment>.*), /actuator/${segment}
+
+        - id: payment-actuator
+          uri: http://payment-service:8083
+          predicates:
+            - Path=/actuator/payment/**
+          filters:
+            - RewritePath=/actuator/payment/(?<segment>.*), /actuator/${segment}
 
         - id: auth-docs
           uri: http://auth-service:8080
@@ -85,6 +97,13 @@ spring:
           filters:
             - RewritePath=/v3/api-docs/order-service, /v3/api-docs
 
+        - id: payment-docs
+          uri: http://payment-service:8083
+          predicates:
+            - Path=/v3/api-docs/payment-service
+          filters:
+            - RewritePath=/v3/api-docs/payment-service, /v3/api-docs
+
 springdoc:
   swagger-ui:
     urls:
@@ -94,6 +113,8 @@ springdoc:
         url: /v3/api-docs/product-service
       - name: order-service
         url: /v3/api-docs/order-service
+      - name: payment-service
+        url: /v3/api-docs/payment-service
 
 logging:
   pattern:

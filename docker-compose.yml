@@ -53,6 +53,24 @@ services:
     networks:
       - app-network
 
+  payment-db:
+    image: postgres:15-alpine
+    container_name: payment-db
+    environment:
+      POSTGRES_DB: paymentsdb
+      POSTGRES_USER: ${PAYMENT_DB_USER}
+      POSTGRES_PASSWORD: ${PAYMENT_DB_PASSWORD}
+    ports: [ "5436:5432" ]
+    volumes:
+      - pgdata_payments:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${PAYMENT_DB_USER} -d paymentsdb" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - app-network
+
   redis:
     image: redis:7-alpine
     container_name: auth-redis
@@ -175,8 +193,8 @@ services:
     depends_on:
       order-db:
         condition: service_healthy
-#      product-service:
-#        condition: service_started
+      product-service:
+        condition: service_started
       kafka:
         condition: service_started
       config-server:
@@ -188,6 +206,31 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${ORDER_DB_PASSWORD}
       SERVER_PORT: 8082
       PRODUCT_SERVICE_URL: http://product-service:8081
+      AUTH_SERVICE_URL: http://auth-service:8080
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9093
+    networks:
+      - app-network
+
+  payment-service:
+    container_name: payment-service
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      args:
+        SERVICE: payment-service
+    depends_on:
+      payment-db:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+      config-server:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: postgres
+      SPRING_DATASOURCE_URL: jdbc:postgresql://payment-db:5432/paymentsdb
+      SPRING_DATASOURCE_USERNAME: ${PAYMENT_DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${PAYMENT_DB_PASSWORD}
+      SERVER_PORT: 8083
       AUTH_SERVICE_URL: http://auth-service:8080
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9093
     networks:
@@ -300,6 +343,7 @@ volumes:
   pgdata_products:
   pgdata_orders:
   pgdata_users:
+  pgdata_payments:
   redis_data:
   kafka_data:
   zookeeper_data:
