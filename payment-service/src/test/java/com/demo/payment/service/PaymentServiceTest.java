@@ -147,4 +147,63 @@ class PaymentServiceTest {
 
         assertThrows(EntityNotFoundException.class, () -> paymentService.findByOrderId(orderId));
     }
+
+    // ── Webhook tests ────────────────────────────────────────────────
+
+    @Test
+    void completeFromWebhook_shouldComplete_whenPending() {
+        UUID orderId = UUID.randomUUID();
+        Payment pending = payment(orderId, PaymentStatus.PENDING);
+        when(paymentRepository.findByOrderIdForUpdate(orderId)).thenReturn(Optional.of(pending));
+        when(paymentRepository.save(any(Payment.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        paymentService.completeFromWebhook(orderId);
+
+        assertEquals(PaymentStatus.COMPLETED, pending.getStatus());
+        assertNotNull(pending.getPaymentReference());
+        assertTrue(pending.getPaymentReference().startsWith("PAY-"));
+        verify(eventPublisher).publish(eq(PaymentTopics.PAYMENT_COMPLETED), any());
+    }
+
+    @Test
+    void completeFromWebhook_shouldReject_ifNotPending() {
+        UUID orderId = UUID.randomUUID();
+        Payment completed = payment(orderId, PaymentStatus.COMPLETED);
+        when(paymentRepository.findByOrderIdForUpdate(orderId)).thenReturn(Optional.of(completed));
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> paymentService.completeFromWebhook(orderId));
+
+        assertTrue(ex.getMessage().contains("COMPLETED"));
+        verify(paymentRepository, never()).save(any());
+        verify(eventPublisher, never()).publish(any(), any());
+    }
+
+    @Test
+    void failFromWebhook_shouldFail_whenPending() {
+        UUID orderId = UUID.randomUUID();
+        Payment pending = payment(orderId, PaymentStatus.PENDING);
+        when(paymentRepository.findByOrderIdForUpdate(orderId)).thenReturn(Optional.of(pending));
+        when(paymentRepository.save(any(Payment.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        paymentService.failFromWebhook(orderId, "Insufficient funds");
+
+        assertEquals(PaymentStatus.FAILED, pending.getStatus());
+        assertEquals("Insufficient funds", pending.getFailureReason());
+        verify(eventPublisher).publish(eq(PaymentTopics.PAYMENT_FAILED), any());
+    }
+
+    @Test
+    void failFromWebhook_shouldReject_ifNotPending() {
+        UUID orderId = UUID.randomUUID();
+        Payment completed = payment(orderId, PaymentStatus.COMPLETED);
+        when(paymentRepository.findByOrderIdForUpdate(orderId)).thenReturn(Optional.of(completed));
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> paymentService.failFromWebhook(orderId, "Declined"));
+
+        assertTrue(ex.getMessage().contains("COMPLETED"));
+        verify(paymentRepository, never()).save(any());
+        verify(eventPublisher, never()).publish(any(), any());
+    }
 }
