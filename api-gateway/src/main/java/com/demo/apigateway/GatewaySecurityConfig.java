@@ -24,6 +24,7 @@ public class GatewaySecurityConfig {
                 .authorizeExchange(ex -> ex
                         .pathMatchers(
                                 "/api/auth/**",
+                                "/api/webhooks/**",
                                 "/gateway-actuator/**",
                                 "/actuator/**",
                                 "/v3/api-docs/**",

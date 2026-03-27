@@ -57,8 +57,6 @@ public class PaymentService {
         payment.setStatus(PaymentStatus.PENDING);
         paymentRepository.save(payment);
 
-        // Mock payment - always COMPLETED
-        completePayment(payment, event.totalAmount());
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
@@ -89,6 +87,44 @@ public class PaymentService {
         eventPublisher.publish(PaymentTopics.REFUND_COMPLETED, evt);
         meterRegistry.counter("payment.refund.completed", "service", "payment-service").increment();
         log.info("Refund completed for orderId={}, ref={}", orderId, payment.getPaymentReference());
+    }
+
+    @Transactional
+    public void completeFromWebhook(UUID orderId) {
+        log.info("Webhook: completing payment for orderId={}", orderId);
+
+        Payment payment = paymentRepository.findByOrderIdForUpdate(orderId)
+                .orElseThrow(() -> new EntityNotFoundException("Payment not found for orderId=" + orderId));
+
+        if (payment.getStatus() != PaymentStatus.PENDING) {
+            throw new IllegalStateException(
+                    "Cannot complete payment: current status is " + payment.getStatus());
+        }
+
+        completePayment(payment, payment.getAmount());
+    }
+
+    @Transactional
+    public void failFromWebhook(UUID orderId, String reason) {
+        log.info("Webhook: failing payment for orderId={}, reason={}", orderId, reason);
+
+        Payment payment = paymentRepository.findByOrderIdForUpdate(orderId)
+                .orElseThrow(() -> new EntityNotFoundException("Payment not found for orderId=" + orderId));
+
+        if (payment.getStatus() != PaymentStatus.PENDING) {
+            throw new IllegalStateException(
+                    "Cannot fail payment: current status is " + payment.getStatus());
+        }
+
+        payment.setStatus(PaymentStatus.FAILED);
+        payment.setFailureReason(reason);
+        paymentRepository.save(payment);
+
+        var evt = new PaymentFailedEvent(
+                UUID.randomUUID(), orderId, reason, OffsetDateTime.now());
+        eventPublisher.publish(PaymentTopics.PAYMENT_FAILED, evt);
+        meterRegistry.counter("payment.failed", "service", "payment-service").increment();
+        log.info("Payment failed for orderId={}, reason={}", orderId, reason);
     }
 
     @Transactional(readOnly = true)
