@@ -22,7 +22,7 @@ jobs:
           cache: maven
 
       - name: Compile (no tests)
-        run: mvn clean compile
+        run: mvn clean compile --batch-mode --no-transfer-progress
 
   tests:
     needs: build
@@ -40,6 +40,6 @@ jobs:
           cache: maven
           
       - name: Unit tests
-        run: mvn clean test
+        run: mvn clean test --batch-mode --no-transfer-progress
 
     
