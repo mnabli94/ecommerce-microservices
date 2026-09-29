@@ -66,19 +66,20 @@ class PaymentServiceTest {
     }
 
     @Test
-    void processPayment_shouldComplete() {
+    void processPayment_shouldCreatePendingPayment() {
         UUID orderId = UUID.randomUUID();
         when(paymentRepository.findByOrderId(orderId)).thenReturn(Optional.empty());
         when(paymentRepository.save(any(Payment.class))).thenAnswer(inv -> inv.getArgument(0));
 
         paymentService.processPayment(stockReservedEvent(orderId, BigDecimal.valueOf(50)));
 
-        verify(paymentRepository, times(2)).save(paymentCaptor.capture());
-        Payment saved = paymentCaptor.getAllValues().get(1); // second save = after completion
-        assertEquals(PaymentStatus.COMPLETED, saved.getStatus());
-        assertNotNull(saved.getPaymentReference());
-        assertTrue(saved.getPaymentReference().startsWith("PAY-"));
-        verify(eventPublisher).publish(eq(PaymentTopics.PAYMENT_COMPLETED), any());
+        verify(paymentRepository).save(paymentCaptor.capture());
+        Payment saved = paymentCaptor.getValue();
+        assertEquals(PaymentStatus.PENDING, saved.getStatus());
+        assertEquals(orderId, saved.getOrderId());
+        assertEquals("user-1", saved.getUserId());
+        assertEquals(BigDecimal.valueOf(50), saved.getAmount());
+        verify(eventPublisher, never()).publish(any(), any());
     }
 
     @Test
